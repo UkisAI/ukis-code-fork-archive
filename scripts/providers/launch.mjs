@@ -105,12 +105,22 @@ export async function configureModels(
       env: { ...process.env, UKIS_PROVIDER_TOKEN: bridge.token },
       async close() {
         await bridge.close();
-        await rm(directory, { recursive: true, force: true });
+        await rm(directory, {
+          recursive: true,
+          force: true,
+          maxRetries: 5,
+          retryDelay: 100,
+        });
       },
     };
   } catch (error) {
     if (bridge) await bridge.close();
-    await rm(directory, { recursive: true, force: true });
+    await rm(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100,
+    });
     throw error;
   }
 }
