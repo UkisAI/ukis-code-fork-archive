@@ -1,0 +1,28 @@
+{
+  "schema": "ukis.contract/v1",
+  "run_id": "fixture_gpqa_toy_current-vs-base",
+  "tier": "confirmation",
+  "question": "Does the current checkpoint beat base on (toy, 8-item) GPQA accuracy?",
+  "decision": {"if": "verdict == SUPPORTED", "then": "promote current", "else": "keep base; investigate"},
+  "falsify": "no significant accuracy gain, or a significant drop",
+  "family": "gpqa_diamond/qwen38_xhigh_k5_100k",
+  "benchmark": "Toy GPQA",
+  "command": {"argv": ["python", "benchmarks/gpqa.py", "--limit", "8", "--seeds", "0,1,2,3,4"], "runner_commit": "8f748ee"},
+  "dataset": {"id": "Idavidrein/gpqa:gpqa_diamond.csv", "revision": "633f5ee8", "n_items": 8},
+  "grader": {"id": "last 'Answer: X', ok() required", "revision": "8f748ee"},
+  "sampler": {"temperature": 1.0, "top_p": 0.95, "top_k": 20, "min_p": 0.0, "presence_penalty": 0.0,
+              "repetition_penalty": 1.0, "reasoning_effort": "xhigh"},
+  "max_output_tokens": 100000,
+  "timeout_s": 10800,
+  "seeds": [0, 1, 2, 3, 4],
+  "metrics": [
+    {"name": "accuracy", "definition": "correct / (items x seeds); errors, empty and truncations wrong",
+     "unit": "percent", "direction": "higher_better", "kind": "accuracy", "primary": true}
+  ],
+  "arms": [
+    {"name": "base", "role": "baseline"},
+    {"name": "current", "role": "treatment"}
+  ],
+  "controls": [{"arm": "base", "rules_out": "the gain exists without the new checkpoint"}],
+  "thinking_tokens": "completion_tokens"
+}

@@ -1,0 +1,25 @@
+[package]
+name = "ukis-validate"
+version = "0.1.0"
+edition = "2024"
+description = "Deterministic validator for ukis-research runs: contract checks, recomputed results, verdicts, canonical table."
+license = "Apache-2.0"
+publish = false
+
+# Standalone on purpose: NOT a member of the codex-rs workspace, so upstream merges never touch it.
+[workspace]
+
+[lib]
+name = "ukis_validate"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ukis-validate"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+# float_roundtrip: `table` re-verifies results/comparison files by exact equality with a
+# recomputation, so parsing a float we wrote must give back the identical f64.
+serde_json = { version = "1", features = ["float_roundtrip"] }
+sha2 = "0.10"

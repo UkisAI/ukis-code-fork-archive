@@ -1,0 +1,17 @@
+{
+  "benchmark": "gpqa",
+  "model": "toy-current",
+  "mean": 82.5,
+  "per_seed": {
+    "0": 87.5,
+    "1": 75.0,
+    "2": 87.5,
+    "3": 75.0,
+    "4": 87.5
+  },
+  "n": 40,
+  "errors": 0,
+  "truncated": 0,
+  "mean_output_tokens": 835,
+  "median_output_tokens": 835.0
+}

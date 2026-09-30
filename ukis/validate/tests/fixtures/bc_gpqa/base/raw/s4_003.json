@@ -1,0 +1,1 @@
+{"key": "s4_003", "content": "", "reasoning": "", "finish_reason": "error", "error": "URLError: <urlopen error [Errno 111] Connection refused>", "seconds": 0.1, "seed": 4, "gold": "D", "pred": null}
