@@ -23,3 +23,37 @@ jobs:
         with:
           name: ukis-logo-frames
           path: /tmp/ukis-logo-frames.txt
+
+  windows:
+    name: Build runnable Windows CLI
+    runs-on: windows-2025
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_BUILD_JOBS: "4"
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      CARGO_TARGET_DIR: D:\ukis-target
+      LIBSQLITE3_FLAGS: SQLITE_DISABLE_INTRINSIC
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: ./.github/actions/setup-msvc-env
+        with:
+          target: x86_64-pc-windows-msvc
+      - uses: ./.github/actions/setup-rusty-v8
+        with:
+          target: x86_64-pc-windows-msvc
+      - name: Compile Ukis Codex and Windows helpers
+        working-directory: codex-rs
+        run: cargo build --locked --profile dev-small --target x86_64-pc-windows-msvc --bin codex --bin codex-windows-sandbox-setup --bin codex-windows-sandbox-service --bin codex-command-runner
+      - name: Verify executable starts
+        run: '& D:\ukis-target\x86_64-pc-windows-msvc\dev-small\codex.exe --version'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ukis-codex-windows-x64
+          path: D:\ukis-target\x86_64-pc-windows-msvc\dev-small\*.exe
+          if-no-files-found: error
