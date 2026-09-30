@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url";
 
 import { providerOptions } from "./provider-options.mjs";
 
+if (process.argv[2] === "window") {
+  const { openUkisWindow } = await import("./ukis-window.mjs");
+  process.exit(await openUkisWindow(process.argv.slice(3)));
+}
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = process.env.CARGO_TARGET_DIR
   ? path.resolve(process.env.CARGO_TARGET_DIR)

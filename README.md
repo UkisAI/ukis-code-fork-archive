@@ -42,6 +42,17 @@ To install `ukis` in a user command directory already on PATH:
 
 If you already have another Ukis application, pass its executable path with `-LegacyExecutable` to preserve it as `ukis-legacy`. The installer checks for conflicting wrapper files. Run `ukis` from any project folder; arguments and the current working directory are passed through to the CLI.
 
+## Terminal font
+
+The website's **IBM Plex Mono** is available as a dedicated Windows Terminal profile:
+
+```powershell
+powershell -File scripts/install-ukis-terminal.ps1
+ukis window
+```
+
+`ukis window` opens the current project in that profile. Regular `ukis` uses the font of the terminal where it runs. Avenir and Denton remain website typography; the CLI uses a fixed character grid. See [font source and installation details](branding/fonts/ibm-plex-mono/README.md).
+
 ## Models and reasoning effort
 
 Run `ukis`, then type `/model` to switch between OpenAI and Claude in the same conversation. The menu includes Fable when available through your Claude account. After selecting a model, choose its reasoning effort; advanced levels such as Max appear under **More reasoning…**. Model choices and supported effort levels are discovered from Claude Code on each launch.
