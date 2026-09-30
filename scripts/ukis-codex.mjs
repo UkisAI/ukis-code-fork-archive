@@ -12,7 +12,11 @@ const target = process.env.CARGO_TARGET_DIR
 const name = process.platform === "win32" ? "codex.exe" : "codex";
 const candidates = process.env.UKIS_CODEX_BIN
   ? [path.resolve(process.env.UKIS_CODEX_BIN)]
-  : [path.join(target, "release", name), path.join(target, "debug", name)];
+  : [
+      path.join(target, "release", name),
+      path.join(target, "debug", name),
+      path.join(root, "dist", "windows", name),
+    ];
 const executable = candidates.find(existsSync);
 if (!executable) {
   console.error("Ukis Codex has not been built. From this checkout, run:");

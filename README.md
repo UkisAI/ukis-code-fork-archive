@@ -29,6 +29,18 @@ Windows uses the same Node launcher after building `codex.exe` with the MSVC Rus
 
 Use your existing Codex sign-in and `~/.codex` configuration. This fork does not create a separate account or configuration profile. Model use follows your existing provider/account setup.
 
+## Windows command
+
+The manual **Ukis branding validation** workflow can build a Windows executable and its sandbox helpers. Download the `ukis-codex-windows-x64` artifact into `dist/windows/`; the Node launcher detects it automatically.
+
+To install `ukis` in a user command directory already on PATH:
+
+```powershell
+.\scripts\install-ukis-command.ps1
+```
+
+If you already have another Ukis application, pass its executable path with `-LegacyExecutable` to preserve it as `ukis-legacy`. The installer checks for conflicting wrapper files. Run `ukis` from any project folder; arguments and the current working directory are passed through to the CLI.
+
 ## Development
 
 ```sh

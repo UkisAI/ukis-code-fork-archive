@@ -18,7 +18,7 @@ jobs:
       - name: Check Rust formatting
         working-directory: codex-rs
         run: cargo fmt -- --config imports_granularity=Item --check
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         if: always()
         with:
           name: ukis-logo-frames
@@ -52,7 +52,7 @@ jobs:
         run: cargo build --locked --profile dev-small --target x86_64-pc-windows-msvc --bin codex --bin codex-windows-sandbox-setup --bin codex-windows-sandbox-service --bin codex-command-runner
       - name: Verify executable starts
         run: '& D:\ukis-target\x86_64-pc-windows-msvc\dev-small\codex.exe --version'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: ukis-codex-windows-x64
           path: D:\ukis-target\x86_64-pc-windows-msvc\dev-small\*.exe
