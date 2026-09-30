@@ -1,0 +1,136 @@
+name: Ukis macOS and Linux
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, feature/loop]
+    paths:
+      - '.github/workflows/ukis-platforms.yml'
+      - 'scripts/**'
+      - 'codex-rs/**'
+permissions:
+  contents: read
+jobs:
+  native:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS Apple Silicon
+            runner: macos-15
+            target: aarch64-apple-darwin
+            archive: macos-arm64
+          - name: macOS Intel
+            runner: macos-15-intel
+            target: x86_64-apple-darwin
+            archive: macos-x64
+          - name: Linux x64
+            runner: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            archive: linux-x64
+          - name: Linux ARM64
+            runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            archive: linux-arm64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '3'
+      CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      TARGET: ${{ matrix.target }}
+      ARCHIVE: ukis-code-${{ matrix.archive }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential pkg-config libcap-dev libasound2-dev bubblewrap
+          # Match upstream's disposable CI runner setup for sandbox tests.
+          sudo sysctl -w kernel.unprivileged_userns_clone=1
+          if sudo sysctl -n kernel.apparmor_restrict_unprivileged_userns >/dev/null 2>&1; then
+            sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          fi
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582
+        with:
+          targets: ${{ matrix.target }}
+          components: clippy
+      - uses: ./.github/actions/setup-rusty-v8
+        with:
+          target: ${{ matrix.target }}
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29
+        with:
+          tool: just@1.51.0,cargo-nextest
+      - name: Restore native build cache
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: |
+            target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ukis-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: ukis-${{ matrix.target }}-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}-
+      - name: Install and test the model launcher
+        run: |
+          node -e 'if (Number(process.versions.node.split(".")[0]) < 22) process.exit(1)'
+          npm ci --omit=dev --prefix scripts/providers
+          node --test scripts/*.test.mjs scripts/providers/*.test.mjs
+      - name: Build native CLI and sandbox helpers
+        working-directory: codex-rs
+        run: |
+          if [[ "$RUNNER_OS" == Linux ]]; then
+            cargo build --locked --profile dev-small --target "$TARGET" --bin bwrap
+            export CODEX_BWRAP_SHA256="$(sha256sum "$CARGO_TARGET_DIR/$TARGET/dev-small/bwrap" | cut -d ' ' -f 1)"
+            echo "CODEX_BWRAP_SHA256=$CODEX_BWRAP_SHA256" >> "$GITHUB_ENV"
+          fi
+          cargo build --locked --profile dev-small --target "$TARGET" --bin codex --bin codex-code-mode-host
+      - name: Run config and TUI tests
+        working-directory: codex-rs
+        run: just test -p codex-config -p codex-tui --cargo-profile dev-small --target "$TARGET"
+      - name: Check scoped Clippy fixes
+        working-directory: codex-rs
+        run: |
+          just fix -p codex-config -p codex-tui --profile dev-small --target "$TARGET"
+          git diff --exit-code
+      - name: Package and verify the relocated archive
+        run: |
+          node scripts/package-ukis.mjs "$CARGO_TARGET_DIR/$TARGET/dev-small" "$RUNNER_TEMP/$ARCHIVE"
+          tar -czf "$RUNNER_TEMP/$ARCHIVE.tar.gz" -C "$RUNNER_TEMP" "$ARCHIVE"
+          mkdir "$RUNNER_TEMP/relocated"
+          tar -xzf "$RUNNER_TEMP/$ARCHIVE.tar.gz" -C "$RUNNER_TEMP/relocated"
+          cd "$RUNNER_TEMP/relocated/$ARCHIVE"
+          node scripts/install-ukis-command.mjs --bin-dir "$RUNNER_TEMP/commands"
+          "$RUNNER_TEMP/commands/ukis" --version
+          "$RUNNER_TEMP/commands/ukis" --help
+          "$RUNNER_TEMP/commands/ukis" --provider openai sandbox --permission-profile :read-only -- /bin/echo ukis-sandbox-smoke
+          node --input-type=module -e 'await import("./scripts/providers/launch.mjs")'
+          cd "$RUNNER_TEMP"
+          shasum -a 256 "$ARCHIVE.tar.gz" > "$ARCHIVE.tar.gz.sha256"
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: ukis-code-${{ matrix.archive }}
+          path: |
+            ${{ runner.temp }}/${{ env.ARCHIVE }}.tar.gz
+            ${{ runner.temp }}/${{ env.ARCHIVE }}.tar.gz.sha256
+          if-no-files-found: error
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: diagnostics-${{ matrix.archive }}
+          include-hidden-files: true
+          path: |
+            codex-rs/tui/**/*.snap.new
+            codex-rs/tui/**/.*.pending-snap
+            target/nextest/**/junit.xml
+          if-no-files-found: ignore

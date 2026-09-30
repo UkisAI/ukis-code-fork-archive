@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // Launch only a compiled build of this fork; preserve the caller's working directory.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { providerOptions } from "./provider-options.mjs";
+import { findUkisBinary } from "./ukis-binary.mjs";
 import { openUkisWindow, shouldOpenUkisWindow } from "./ukis-window.mjs";
 
 if (process.argv[2] === "window") {
@@ -18,19 +18,7 @@ if (shouldOpenUkisWindow(process.argv.slice(2))) {
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const target = process.env.CARGO_TARGET_DIR
-  ? path.resolve(process.env.CARGO_TARGET_DIR)
-  : path.join(root, "codex-rs", "target");
-const name = process.platform === "win32" ? "codex.exe" : "codex";
-const candidates = process.env.UKIS_CODE_BIN
-  ? [path.resolve(process.env.UKIS_CODE_BIN)]
-  : [
-      path.join(target, "release", name),
-      path.join(target, "debug", name),
-      path.join(root, "dist", "windows", "ukis-code.exe"),
-      path.join(root, "dist", "windows", name),
-    ];
-const executable = candidates.find(existsSync);
+const executable = findUkisBinary(root);
 if (!executable) {
   console.error("Ukis Code has not been built. From this checkout, run:");
   console.error("  cd codex-rs && cargo build --release --bin codex");

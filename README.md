@@ -30,6 +30,22 @@ Windows uses the same Node launcher after building `codex.exe` with the MSVC Rus
 
 Use your existing Codex sign-in and `~/.codex` configuration. This fork does not create a separate account or configuration profile. Model use follows your existing provider/account setup.
 
+## macOS and Linux command
+
+The **Ukis macOS and Linux** workflow builds and tests four native packages: macOS Apple Silicon, macOS Intel, Linux x64, and Linux ARM64. Download the matching artifact from a successful run in [GitHub Actions](https://github.com/UkisAI/ukis-code/actions/workflows/ukis-platforms.yml). These are development builds, not signed macOS releases. The current test platforms are macOS 15 and Ubuntu 24.04; Linux packages require glibc 2.39 or newer and are not Alpine/musl builds.
+
+Install Node.js 22 or newer. Linux also needs the ALSA and libcap runtime libraries (`sudo apt install libasound2t64 libcap2` on Ubuntu 24.04). Extract the artifact's `.tar.gz` into a permanent directory, then run these commands inside the extracted folder:
+
+```sh
+node scripts/install-ukis-command.mjs
+export PATH="$HOME/.local/bin:$PATH"
+ukis --version
+```
+
+Add that PATH line to your shell profile if needed. Then run `ukis` from any project directory. The same installer works from a source checkout after building. It preserves arguments and your working directory, and refuses to replace an unrelated existing `ukis` command. Keep the extracted directory in place; rerun the installer if you move it. You can also run `bin/ukis` directly from a downloaded package.
+
+Packages include the model-provider dependencies. For Claude subscription access, install Claude Code separately and run `claude auth login`; OpenAI uses your Codex login. Both providers appear in `/model` when available. On macOS and Linux, `ukis` runs in your current terminal. To use IBM Plex Mono, install the font files under `branding/fonts/ibm-plex-mono` and select it in your terminal's font settings.
+
 ## Windows command
 
 The manual **Ukis branding validation** workflow can build a Windows executable and its sandbox helpers. Download the `ukis-code-windows-x64` artifact into `dist/windows/`; the Node launcher detects it automatically.
