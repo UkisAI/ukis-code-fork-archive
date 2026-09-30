@@ -228,3 +228,7 @@ impl ServerHandler for LoopHandler {
         .into())
     }
 }
+
+#[cfg(test)]
+#[path = "loop_mcp_tests.rs"]
+mod tests;

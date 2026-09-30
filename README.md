@@ -79,7 +79,7 @@ Bare /loop uses .ukis/loop.md in the current project, then loop.md in your Codex
 
 Loops run one at a time, wait for your turn, draft, and queued messages, and use the current model, effort, sandbox, and approvals. Missed intervals become one run. A failed or interrupted iteration stops its loop. Esc with an empty composer cancels adaptive loops; /loop stop cancels future runs of all loops. An iteration already running can be interrupted separately.
 
-Up to 50 loops can exist in the current conversation, for at most seven days. Schedules live in memory: leaving the conversation or closing Ukis removes them, and resume does not restore them. Adaptive controls require a local app-server connection permitted by your MCP configuration; fixed schedules also work with remote connections.
+Up to 50 loops can exist in the current conversation, with a seven-day expiry and one final run when idle. Schedules live in memory: leaving the conversation or closing Ukis removes them, and resume does not restore them. Adaptive controls require a local app-server connection permitted by your MCP configuration; fixed schedules also work with remote connections.
 
 Behavior is informed by [Anthropic's scheduled-task documentation](https://code.claude.com/docs/en/scheduled-tasks).
 

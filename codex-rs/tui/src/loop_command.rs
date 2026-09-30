@@ -36,7 +36,10 @@ pub(crate) fn parse(args: &str) -> Result<LoopCommand, String> {
     let (cadence, prompt) =
         if first.starts_with(|ch: char| ch.is_ascii_digit() || ch == '-' || ch == '+') {
             (Cadence::Fixed(parse_interval(first)?), rest.trim())
-        } else if let Some((prompt, suffix)) = args.rsplit_once(" every ") {
+        } else if unquote(args) == args
+            && let Some((prompt, suffix)) = args.rsplit_once(" every ")
+            && suffix.starts_with(|ch: char| ch.is_ascii_digit() || ch == '-' || ch == '+')
+        {
             let compact: String = suffix.chars().filter(|ch| !ch.is_whitespace()).collect();
             (Cadence::Fixed(parse_interval(&compact)?), prompt.trim())
         } else {

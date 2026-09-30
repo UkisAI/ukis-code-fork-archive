@@ -5,7 +5,7 @@ use pretty_assertions::assert_eq;
 
 #[tokio::test]
 async fn loop_list_renders_schedule_and_stop_cancels_it() {
-    let (mut chat, mut events, _operations) = make_chatwidget_manual(None).await;
+    let (mut chat, mut events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     let now = Instant::now();
     chat.handle_loop_command("5m check CI", now, LoopAvailability::Adaptive);
@@ -28,7 +28,7 @@ async fn loop_list_renders_schedule_and_stop_cancels_it() {
 
 #[tokio::test]
 async fn loop_waits_for_user_input_and_submits_literal_prompt_once() {
-    let (mut chat, _events, mut operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, mut operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     let now = Instant::now();
     chat.handle_loop_command(
@@ -75,7 +75,7 @@ async fn loop_waits_for_user_input_and_submits_literal_prompt_once() {
 
 #[tokio::test]
 async fn loop_preserves_queue_priority_and_busy_turns() {
-    let (mut chat, _events, mut operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, mut operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     let now = Instant::now();
     chat.handle_loop_command("1m check", now, LoopAvailability::Adaptive);
@@ -93,7 +93,7 @@ async fn loop_preserves_queue_priority_and_busy_turns() {
 
 #[tokio::test]
 async fn loop_adaptive_tool_is_bound_to_its_conversation_turn_and_iteration() {
-    let (mut chat, _events, _operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
     let thread_id = ThreadId::new();
     chat.thread_id = Some(thread_id);
     let now = Instant::now();
@@ -129,7 +129,7 @@ async fn loop_adaptive_tool_is_bound_to_its_conversation_turn_and_iteration() {
 
 #[tokio::test]
 async fn loop_default_file_reloads_and_explicit_prompt_ignores_it() {
-    let (mut chat, _events, mut operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, mut operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     let project = tempfile::tempdir().unwrap();
     chat.config.cwd = project.path().to_path_buf().abs();
@@ -160,7 +160,7 @@ async fn loop_default_file_reloads_and_explicit_prompt_ignores_it() {
 
 #[tokio::test]
 async fn loop_escape_cancels_adaptive_without_touching_fixed_schedule() {
-    let (mut chat, _events, _operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     let now = Instant::now();
     chat.handle_loop_command("check", now, LoopAvailability::Adaptive);
@@ -175,10 +175,33 @@ async fn loop_escape_cancels_adaptive_without_touching_fixed_schedule() {
 
 #[tokio::test]
 async fn loop_adaptive_is_rejected_without_its_control_transport() {
-    let (mut chat, _events, _operations) = make_chatwidget_manual(None).await;
+    let (mut chat, _events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
     chat.thread_id = Some(ThreadId::new());
     chat.handle_loop_command("check", Instant::now(), LoopAvailability::FixedOnly);
     assert!(!chat.has_loop_tasks());
     chat.handle_loop_command("1m check", Instant::now(), LoopAvailability::FixedOnly);
     assert!(chat.has_loop_tasks());
+}
+
+#[tokio::test]
+async fn loop_controls_remain_available_while_disconnected() {
+    let (mut chat, _events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.thread_id = Some(ThreadId::new());
+    let now = Instant::now();
+    chat.handle_loop_command("1m check", now, LoopAvailability::Adaptive);
+    chat.handle_loop_command("1m another task", now, LoopAvailability::Disconnected);
+    assert_eq!(chat.loop_scheduler.tasks.len(), 1);
+    chat.handle_loop_command("stop", now, LoopAvailability::Disconnected);
+    assert!(!chat.has_loop_tasks());
+}
+
+#[tokio::test]
+async fn loop_stops_when_its_voice_chat_is_parked_in_the_background() {
+    let (mut chat, _events, _operations) = make_chatwidget_manual(/*model_override*/ None).await;
+    chat.thread_id = Some(ThreadId::new());
+    let now = Instant::now();
+    chat.handle_loop_command("1m check", now, LoopAvailability::Adaptive);
+    chat.handle_loop_command("check adaptively", now, LoopAvailability::Adaptive);
+    chat.park_voice();
+    assert!(!chat.has_loop_tasks());
 }

@@ -11,6 +11,7 @@ use std::io::Read;
 pub(crate) enum LoopAvailability {
     Adaptive,
     FixedOnly,
+    Disconnected,
 }
 
 const HELP: &str = "/loop [interval] [prompt]  Start a loop (s, m, h, d; minimum 1 minute)\n/loop <prompt>           Adaptive: the model chooses each delay\n/loop                    Adaptive maintenance, or your loop.md\n/loop list               Show this conversation's loops\n/loop stop <id>           Cancel one loop\n/loop stop               Cancel all loops\n\nLoops use the current model, effort, and permissions. They wait for idle, expire after 7 days, and stop when you leave this conversation or close Ukis. Esc stops adaptive loops when the composer is empty.";
@@ -65,6 +66,9 @@ impl ChatWidget {
                     self.add_info_message(format!("Stopped loop {id}."), Some("Future runs are cancelled; an iteration already running is not interrupted.".into()));
                 }
                 LoopCommand::Start { cadence, prompt } => {
+                    if matches!(availability, LoopAvailability::Disconnected) {
+                        return Err("Reconnect before starting a loop. Existing loops can still be listed or stopped.".into());
+                    }
                     if cadence == Cadence::Adaptive && matches!(availability, LoopAvailability::FixedOnly) {
                         return Err("Adaptive loop controls are unavailable on this connection. Use an explicit interval, such as /loop 5m check CI.".into());
                     }
@@ -78,7 +82,7 @@ impl ChatWidget {
                     let id = self.loop_scheduler.add(prompt, cadence, now)?;
                     let schedule = match cadence {
                         Cadence::Fixed(interval) => format!("every {} minute(s); first run after that interval", interval.as_secs() / 60),
-                        Cadence::Adaptive => "adaptive; first run when idle, then model-selected delays of 1?60 minutes".into(),
+                        Cadence::Adaptive => "adaptive; first run when idle, then model-selected delays of 1-60 minutes".into(),
                     };
                     self.add_info_message(format!("Loop {id} scheduled: {schedule}."), Some("Use /loop list or /loop stop. Stops on conversation change or exit; expires after 7 days.".into()));
                 }
@@ -137,13 +141,18 @@ impl ChatWidget {
                 return;
             }
         };
-        if fire.cadence == Cadence::Adaptive {
+        if fire.cadence == Cadence::Adaptive && !fire.final_run {
             prompt.push_str(&format!(
-                "\n\n[Ukis adaptive loop {} ? iteration {}]\nAt the end of this iteration, call the ukis_loop schedule_wakeup tool with loop_id {}, run_id \"{}\", and a short reason. Choose delay_seconds from 60 to 3600 based on what you observed, or stop:true when the task is complete. Keep the existing task scope and permissions. Do not create another loop.",
+                "\n\n[Ukis adaptive loop {} - iteration {}]\nAt the end of this iteration, call the ukis_loop schedule_wakeup tool with loop_id {}, run_id \"{}\", and a short reason. Choose delay_seconds from 60 to 3600 based on what you observed, or stop:true when the task is complete. Keep the existing task scope and permissions. Do not create another loop.",
                 fire.task_id, fire.run_id, fire.task_id, fire.run_id,
             ));
         }
-        self.add_info_message(format!("Running loop {}.", fire.task_id), None);
+        let label = if fire.final_run {
+            "Final run of expired loop"
+        } else {
+            "Running loop"
+        };
+        self.add_info_message(format!("{label} {}.", fire.task_id), /*hint*/ None);
         if self
             .submit_user_message_with_shell_escape_policy(
                 UserMessage::from(prompt),
@@ -169,7 +178,7 @@ impl ChatWidget {
         let reason = request.reason.trim();
         if reason.is_empty() || reason.chars().count() > 500 || reason.chars().any(char::is_control)
         {
-            return Err("Provide a single-line reason of 1?500 characters.".into());
+            return Err("Provide a single-line reason of 1-500 characters.".into());
         }
         let run_id = uuid::Uuid::parse_str(&request.run_id).map_err(|error| error.to_string())?;
         let (decision, message) = match (request.stop, request.delay_seconds) {
@@ -218,7 +227,7 @@ impl ChatWidget {
                 .map_err(|error| format!("Cannot read {}: {error}", path.display()))?;
             if text.trim().is_empty() || text.len() > MAX_PROMPT_BYTES {
                 return Err(format!(
-                    "{} must contain 1?{MAX_PROMPT_BYTES} UTF-8 bytes.",
+                    "{} must contain 1-{MAX_PROMPT_BYTES} UTF-8 bytes.",
                     path.display()
                 ));
             }

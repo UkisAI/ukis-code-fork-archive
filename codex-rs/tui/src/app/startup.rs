@@ -24,7 +24,10 @@ fn spawn_startup_thread_start(
     let thread_params_mode = app_server.thread_params_mode();
     let remote_cwd_override = app_server.remote_cwd_override().map(Path::to_path_buf);
     let thread_tool_transport = app_server.thread_tool_transport();
-    let model_provider_override = app_server.model_provider_override.clone();
+    let overrides = crate::app_server_session::StartupThreadOverrides {
+        model_provider: app_server.model_provider_override.clone(),
+        loop_mcp: app_server.loop_mcp.clone(),
+    };
     tokio::spawn(async move {
         let result = crate::app_server_session::start_thread_with_request_handle(
             request_handle,
@@ -33,7 +36,7 @@ fn spawn_startup_thread_start(
             thread_params_mode,
             remote_cwd_override,
             thread_tool_transport,
-            model_provider_override,
+            overrides,
         )
         .await
         .and_then(|started| {

@@ -80,3 +80,28 @@ fn invalid_and_overflowing_intervals_fail_instead_of_scheduling() {
         assert!(parse(args).is_err(), "{args}");
     }
 }
+
+#[test]
+fn every_in_an_ordinary_or_quoted_prompt_is_not_a_schedule() {
+    for prompt in [
+        "check every PR",
+        "check logs every morning",
+        "check logs every 5m",
+    ] {
+        let args = format!(r#""{prompt}""#);
+        assert_eq!(
+            parse(&args),
+            Ok(LoopCommand::Start {
+                cadence: Cadence::Adaptive,
+                prompt: Some(prompt.into())
+            })
+        );
+    }
+    assert_eq!(
+        parse("check every PR"),
+        Ok(LoopCommand::Start {
+            cadence: Cadence::Adaptive,
+            prompt: Some("check every PR".into())
+        })
+    );
+}

@@ -221,7 +221,8 @@ impl SlashCommand {
     pub(crate) fn available_when_thread_unavailable(self) -> bool {
         matches!(
             self,
-            SlashCommand::New
+            SlashCommand::Loop
+                | SlashCommand::New
                 | SlashCommand::Clear
                 | SlashCommand::Resume
                 | SlashCommand::Agents

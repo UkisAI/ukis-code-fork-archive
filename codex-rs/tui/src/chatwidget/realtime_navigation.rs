@@ -17,6 +17,7 @@ impl ChatWidget {
     }
 
     pub(crate) fn park_voice(&mut self) {
+        self.loop_scheduler.cancel_all();
         self.app_event_tx.voice_only.store(true, Ordering::Relaxed);
         self.set_queue_autosend_suppressed(/*suppressed*/ true);
         self.stop_rate_limit_poller();

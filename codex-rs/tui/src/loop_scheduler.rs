@@ -42,6 +42,7 @@ pub(crate) struct Fire {
     pub(crate) run_id: Uuid,
     pub(crate) prompt: Option<String>,
     pub(crate) cadence: Cadence,
+    pub(crate) final_run: bool,
 }
 
 #[derive(Default)]
@@ -121,13 +122,21 @@ impl LoopScheduler {
     }
 
     pub(crate) fn expire(&mut self, now: Instant) -> Vec<u64> {
-        let expired = self
+        // An in-flight iteration is already the final run. Otherwise leave one
+        // final due fire, including when a seven-day interval wakes slightly late.
+        let expired: Vec<_> = self
             .tasks
             .iter()
-            .filter(|task| now > task.expires)
+            .filter(|task| {
+                now >= task.expires
+                    && self
+                        .active
+                        .as_ref()
+                        .is_some_and(|run| run.task_id == task.id)
+            })
             .map(|task| task.id)
             .collect();
-        self.tasks.retain(|task| now <= task.expires);
+        self.tasks.retain(|task| !expired.contains(&task.id));
         expired
     }
 
@@ -138,11 +147,17 @@ impl LoopScheduler {
         let task = self
             .tasks
             .iter_mut()
-            .filter(|task| task.due <= now && now <= task.expires)
-            .min_by_key(|task| (task.due, task.id))?;
+            .filter(|task| task.due.min(task.expires) <= now)
+            .min_by_key(|task| (task.due.min(task.expires), task.id))?;
         let run_id = Uuid::new_v4();
+        let fire = Fire {
+            task_id: task.id,
+            run_id,
+            prompt: task.prompt.clone(),
+            cadence: task.cadence,
+            final_run: now >= task.expires,
+        };
         if let Cadence::Fixed(interval) = task.cadence {
-            // Missed intervals coalesce into one fire; never build a catch-up queue.
             task.due = now + interval;
         }
         self.active = Some(ActiveRun {
@@ -151,12 +166,10 @@ impl LoopScheduler {
             decision: None,
             turn_id: None,
         });
-        Some(Fire {
-            task_id: task.id,
-            run_id,
-            prompt: task.prompt.clone(),
-            cadence: task.cadence,
-        })
+        if fire.final_run {
+            self.cancel(fire.task_id);
+        }
+        Some(fire)
     }
 
     pub(crate) fn bind_turn(&mut self, turn_id: &str) {

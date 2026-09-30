@@ -37,7 +37,7 @@ jobs:
   windows:
     name: Build runnable Windows CLI
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: 90
     env:
       CARGO_INCREMENTAL: "0"
       CARGO_BUILD_JOBS: "4"
@@ -51,6 +51,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582
         with:
           targets: x86_64-pc-windows-msvc
+          components: clippy
       - uses: ./.github/actions/setup-msvc-env
         with:
           target: x86_64-pc-windows-msvc
@@ -84,6 +85,23 @@ jobs:
         if: inputs.run_tui_tests && inputs.build_mode == 'full'
         working-directory: codex-rs
         run: just test -p codex-tui --cargo-profile dev-small --target x86_64-pc-windows-msvc
+      - name: Check TUI Clippy fixes
+        if: inputs.run_tui_tests && inputs.build_mode == 'full'
+        working-directory: codex-rs
+        run: |
+          just fix -p codex-tui --profile dev-small --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code
+      - name: Upload changed TUI snapshots
+        if: failure() && inputs.run_tui_tests
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: tui-pending-snapshots
+          include-hidden-files: true
+          path: |
+            codex-rs/tui/**/*.snap.new
+            codex-rs/tui/**/.*.pending-snap
+          if-no-files-found: ignore
       - name: Save Windows build cache
         if: always() && steps.build-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4

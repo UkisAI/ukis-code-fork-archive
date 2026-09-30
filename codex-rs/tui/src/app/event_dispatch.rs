@@ -135,8 +135,10 @@ impl App {
         };
         match event {
             AppEvent::LoopCommand { thread_id, args } => {
-                if thread_id.is_some() && thread_id == self.chat_widget.thread_id() {
-                    let availability = if app_server.loop_mcp.is_some() {
+                if thread_id == self.chat_widget.thread_id() {
+                    let availability = if self.reconnect.offline {
+                        crate::chatwidget::loops::LoopAvailability::Disconnected
+                    } else if app_server.loop_mcp.is_some() {
                         crate::chatwidget::loops::LoopAvailability::Adaptive
                     } else {
                         crate::chatwidget::loops::LoopAvailability::FixedOnly
@@ -147,7 +149,11 @@ impl App {
             AppEvent::LoopToolCall { thread_id, turn_id, arguments, reply } => {
                 // A timed-out call must never mutate a loop later.
                 if !reply.is_closed() {
-                    let result = self.chat_widget.handle_loop_tool(&thread_id, &turn_id, arguments);
+                    let result = if self.reconnect.offline {
+                        Err("The conversation is disconnected; no wakeup was scheduled.".into())
+                    } else {
+                        self.chat_widget.handle_loop_tool(&thread_id, &turn_id, arguments)
+                    };
                     let _ = reply.send(result);
                 }
             }
