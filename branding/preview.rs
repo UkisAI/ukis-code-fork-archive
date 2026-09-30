@@ -54,7 +54,7 @@ fn main() {
             verify_snapshot(
                 "onboarding/snapshots/codex_tui__onboarding__welcome__tests__welcome_logo_160x48.snap",
                 &format!(
-                    "{}\n\n  Welcome to UkisAI Code, UkisAI's coding agent, powered by Codex",
+                    "{}\n\n  Welcome to Ukis Code, UkisAI's coding agent, powered by Codex",
                     rows.join("\n")
                 ),
             );

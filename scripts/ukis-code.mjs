@@ -22,8 +22,8 @@ const target = process.env.CARGO_TARGET_DIR
   ? path.resolve(process.env.CARGO_TARGET_DIR)
   : path.join(root, "codex-rs", "target");
 const name = process.platform === "win32" ? "codex.exe" : "codex";
-const candidates = process.env.UKIS_CODEX_BIN
-  ? [path.resolve(process.env.UKIS_CODEX_BIN)]
+const candidates = process.env.UKIS_CODE_BIN
+  ? [path.resolve(process.env.UKIS_CODE_BIN)]
   : [
       path.join(target, "release", name),
       path.join(target, "debug", name),
@@ -31,7 +31,7 @@ const candidates = process.env.UKIS_CODEX_BIN
     ];
 const executable = candidates.find(existsSync);
 if (!executable) {
-  console.error("Ukis Codex has not been built. From this checkout, run:");
+  console.error("Ukis Code has not been built. From this checkout, run:");
   console.error("  cd codex-rs && cargo build --release --bin codex");
   process.exit(1);
 }
@@ -66,7 +66,7 @@ try {
   for (const signal of ["SIGINT", "SIGTERM"])
     process.on(signal, () => child.kill(signal));
   child.on("error", (error) => {
-    console.error(`Unable to start Ukis Codex: ${error.message}`);
+    console.error(`Unable to start Ukis Code: ${error.message}`);
     process.exitCode = 1;
   });
   child.on("close", async (code, signal) => {

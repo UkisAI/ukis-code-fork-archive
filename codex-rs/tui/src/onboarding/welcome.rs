@@ -126,7 +126,7 @@ impl WidgetRef for &WelcomeWidget {
         lines.push(Line::from(vec![
             "  ".into(),
             "Welcome to ".into(),
-            "UkisAI Code".bold(),
+            "Ukis Code".bold(),
             ", UkisAI's coding agent, powered by Codex".into(),
         ]));
 

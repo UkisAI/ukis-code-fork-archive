@@ -63,10 +63,10 @@ $result = [UIntPtr]::Zero
 $fragment = @{
     profiles = @(@{
         guid = $profileId
-        name = 'Ukis'
+        name = 'Ukis Code'
         commandline = 'powershell.exe -NoLogo -NoExit -ExecutionPolicy Bypass -File "' + (Join-Path $PSScriptRoot 'ukis-terminal.ps1') + '"'
         startingDirectory = $repo
-        tabTitle = 'Ukis'
+        tabTitle = 'Ukis Code'
         font = @{ face = 'IBM Plex Mono' }
     })
 } | ConvertTo-Json -Depth 8

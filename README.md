@@ -1,6 +1,6 @@
 <p align="center"><img src="branding/ukisai.svg" alt="UkisAI" width="230" /></p>
 
-# Ukis Codex
+# Ukis Code
 
 UkisAI's terminal coding agent, forked from [OpenAI Codex](https://github.com/openai/codex).
 
@@ -21,10 +21,10 @@ cd codex-rs
 cargo build --release --bin codex --bin codex-code-mode-host
 cd ..
 cd scripts/providers && npm ci && cd ../..
-node scripts/ukis-codex.mjs
+node scripts/ukis-code.mjs
 ```
 
-Run the launcher from the directory you want the agent to work in, using its absolute path if needed. It uses this checkout's compiled binary. Set `UKIS_CODEX_BIN` to an explicit custom build path, or use `CARGO_TARGET_DIR` when building into a different directory. It does not install or fall back to an unmodified OpenAI package.
+Run the launcher from the directory you want the agent to work in, using its absolute path if needed. It uses this checkout's compiled binary. Set `UKIS_CODE_BIN` to an explicit custom build path, or use `CARGO_TARGET_DIR` when building into a different directory. It does not install or fall back to an unmodified OpenAI package.
 
 Windows uses the same Node launcher after building `codex.exe` with the MSVC Rust toolchain and Visual Studio C++ build tools. Linux and macOS builds use `codex`.
 
@@ -32,7 +32,7 @@ Use your existing Codex sign-in and `~/.codex` configuration. This fork does not
 
 ## Windows command
 
-The manual **Ukis branding validation** workflow can build a Windows executable and its sandbox helpers. Download the `ukis-codex-windows-x64` artifact into `dist/windows/`; the Node launcher detects it automatically.
+The manual **Ukis branding validation** workflow can build a Windows executable and its sandbox helpers. Download the `ukis-code-windows-x64` artifact into `dist/windows/`; the Node launcher detects it automatically.
 
 To install `ukis` in a user command directory already on PATH:
 
@@ -40,7 +40,7 @@ To install `ukis` in a user command directory already on PATH:
 .\scripts\install-ukis-command.ps1
 ```
 
-If you already have another Ukis application, pass its executable path with `-LegacyExecutable` to preserve it as `ukis-legacy`. The installer checks for conflicting wrapper files. Run `ukis` from any project folder; arguments and the current working directory are passed through to the CLI.
+Run `ukis` from any project folder. The installer provides the single Ukis Code command; arguments and the current working directory are passed through to the CLI.
 
 ## Terminal font
 

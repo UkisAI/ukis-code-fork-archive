@@ -99,7 +99,7 @@ export async function runClaudeTurn(
   server.instance.server.setRequestHandler(CallToolRequestSchema, async () => ({
     isError: true,
     content: [
-      { type: "text", text: "Execution belongs to the Ukis Codex host." },
+      { type: "text", text: "Execution belongs to the Ukis Code host." },
     ],
   }));
   const controller = new AbortController();
@@ -142,7 +142,7 @@ export async function runClaudeTurn(
           {
             type: "text",
             text:
-              "Continue this Ukis Codex conversation. This JSON is the ordered conversation history; respect its message roles and tool results. Do not repeat completed work.\n" +
+              "Continue this Ukis Code conversation. This JSON is the ordered conversation history; respect its message roles and tool results. Do not repeat completed work.\n" +
               transcript,
           },
           ...images,
@@ -174,7 +174,7 @@ export async function runClaudeTurn(
       // No built-in file/shell tools; declarations request host execution.
       canUseTool: async () => ({
         behavior: "deny",
-        message: "Ukis Codex executes tools after its own approval checks.",
+        message: "Ukis Code executes tools after its own approval checks.",
       }),
       abortController: controller,
     },

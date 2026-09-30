@@ -44,7 +44,7 @@ pub(crate) fn with_border_with_inner_width(
 pub(crate) fn codex_title(version: &str) -> Vec<Span<'static>> {
     vec![
         ">_ ".fg(accent_color()),
-        "UkisAI Code".bold(),
+        "Ukis Code".bold(),
         format!(" (v{version})").dim(),
     ]
 }
@@ -362,7 +362,7 @@ impl HistoryCell for SessionHeaderHistoryCell {
 
     fn raw_lines(&self) -> Vec<Line<'static>> {
         let mut lines = vec![
-            Line::from(format!("UkisAI Code (v{})", self.version)),
+            Line::from(format!("Ukis Code (v{})", self.version)),
             Line::from(format!(
                 "model: {}{}",
                 self.model,

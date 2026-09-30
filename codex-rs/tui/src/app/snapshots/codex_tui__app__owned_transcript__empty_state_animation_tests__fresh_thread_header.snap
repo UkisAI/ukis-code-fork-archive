@@ -4,7 +4,7 @@ expression: "format!(\"enabled:\\n{}\\n---\\ndisabled:\\n{}\", text(after), text
 ---
 enabled:
 
-  >_ UkisAI Code (v0.0.0)
+  >_ Ukis Code (v0.0.0)
      /tmp/project
 
 
@@ -50,7 +50,7 @@ enabled:
 ---
 disabled:
 
-  >_ UkisAI Code (v0.0.0)
+  >_ Ukis Code (v0.0.0)
      /tmp/project
 
 

@@ -4,7 +4,7 @@ expression: "frames.join(\"\\n---\\n\").replace(crate::version::CODEX_CLI_VERSIO
 ---
 terminal_app_over_ssh=false, owned=true
 
-  >_ UkisAI Code (v<VERSION>)
+  >_ Ukis Code (v<VERSION>)
      loading
 
 
@@ -22,7 +22,7 @@ terminal_app_over_ssh=false, owned=true
 ---
 terminal_app_over_ssh=true, owned=false
 
-  >_ UkisAI Code (v<VERSION>)
+  >_ Ukis Code (v<VERSION>)
      loading
 
 

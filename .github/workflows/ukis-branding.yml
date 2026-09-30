@@ -53,7 +53,7 @@ jobs:
       - uses: ./.github/actions/setup-rusty-v8
         with:
           target: x86_64-pc-windows-msvc
-      - name: Compile Ukis Codex and Windows helpers
+      - name: Compile Ukis Code and Windows helpers
         working-directory: codex-rs
         run: |
           if ('${{ inputs.build_mode }}' -eq 'code-mode-host') {
@@ -66,6 +66,6 @@ jobs:
         run: '& D:\ukis-target\x86_64-pc-windows-msvc\dev-small\codex.exe --version'
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: ukis-codex-windows-x64
+          name: ukis-code-windows-x64
           path: D:\ukis-target\x86_64-pc-windows-msvc\dev-small\*.exe
           if-no-files-found: error

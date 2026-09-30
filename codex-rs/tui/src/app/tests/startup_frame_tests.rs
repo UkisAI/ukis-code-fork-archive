@@ -154,7 +154,7 @@ async fn owned_startup_preserves_loading_until_resume_replay_is_applied() -> Res
         if has_answer {
             assert!(rendered.contains("Retained answer after resume."));
         } else {
-            assert!(rendered.contains("UkisAI Code"));
+            assert!(rendered.contains("Ukis Code"));
         }
         tui.set_owned_screen(/*owned*/ false)?;
         app_server.shutdown().await?;
