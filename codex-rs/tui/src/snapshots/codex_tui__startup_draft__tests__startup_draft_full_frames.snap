@@ -4,7 +4,7 @@ expression: "snapshots.join(\"\\n---\\n\")"
 ---
 empty (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ UkisAI Code (v<VERSION>)
      loading
 
 
@@ -14,7 +14,7 @@ empty (48 columns):
 ---
 resuming (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ UkisAI Code (v<VERSION>)
      loading
   Resuming session…
 
@@ -24,7 +24,7 @@ resuming (48 columns):
 ---
 forking (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ UkisAI Code (v<VERSION>)
      loading
   Forking session…
 
@@ -34,7 +34,7 @@ forking (48 columns):
 ---
 multiline (48 columns):
 
-  >_ OpenAI Codex (v<VERSION>)
+  >_ UkisAI Code (v<VERSION>)
      loading
 
 
@@ -45,7 +45,7 @@ multiline (48 columns):
 ---
 narrow (18 columns):
 
-  >_ OpenAI Codex…
+  >_ UkisAI Code…
      loading
 
 

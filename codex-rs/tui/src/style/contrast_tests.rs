@@ -14,7 +14,7 @@ fn selection_text_stays_readable_after_palette_conversion() {
         (255, 255, 255),
         (245, 240, 220),
         (130, 130, 130),
-        super::super::CHATGPT_BLUE_100,
+        super::super::UKIS_PINK,
         (132, 184, 248),
         (18, 20, 30),
     ] {
@@ -35,9 +35,9 @@ fn selection_text_stays_readable_after_palette_conversion() {
             };
             assert!(ratio(resolve(cell.fg), resolve(cell.bg)) >= MIN_TEXT_CONTRAST);
             let preferred = if is_light(background) {
-                super::super::CHATGPT_BLUE_100
+                super::super::UKIS_PINK
             } else {
-                super::super::CHATGPT_BLUE_200
+                super::super::UKIS_VIOLET
             };
             assert!(
                 ratio(resolve(cell.bg), background)

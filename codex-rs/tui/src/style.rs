@@ -15,16 +15,16 @@ use crate::terminal_palette::stdout_color_level;
 use ratatui::style::Color;
 use ratatui::style::Style;
 
-const LIGHT_BG_ACCENT_RGB: (u8, u8, u8) = (28, 100, 200);
+const LIGHT_BG_ACCENT_RGB: (u8, u8, u8) = (126, 34, 206);
 
-/// ChatGPT Blue 100 (#A4CDFB), used for selection fills on light backgrounds.
-pub(crate) const CHATGPT_BLUE_100: (u8, u8, u8) = (164, 205, 251);
+/// UkisAI pink (#EDAEF9), used for selection fills on light backgrounds.
+pub(crate) const UKIS_PINK: (u8, u8, u8) = (237, 174, 249);
 
-/// ChatGPT Blue 200 (#63A8F8).
-pub(crate) const CHATGPT_BLUE_200: (u8, u8, u8) = (99, 168, 248);
+/// UkisAI violet (#A855F7).
+pub(crate) const UKIS_VIOLET: (u8, u8, u8) = (168, 85, 247);
 
 /// Shared accent for picker selection backgrounds and transcript foreground emphasis.
-pub(crate) const UI_ACCENT: (u8, u8, u8) = CHATGPT_BLUE_200;
+pub(crate) const UI_ACCENT: (u8, u8, u8) = UKIS_VIOLET;
 
 #[derive(Clone, Copy)]
 pub(crate) enum StatusTone {

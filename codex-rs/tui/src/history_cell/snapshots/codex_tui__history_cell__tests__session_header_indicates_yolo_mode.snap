@@ -4,6 +4,6 @@ assertion_line: 1885
 expression: rendered
 ---
 
-  >_ OpenAI Codex (vtest)
+  >_ UkisAI Code (vtest)
      /tmp/project
   permissions: YOLO mode
