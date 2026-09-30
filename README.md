@@ -18,8 +18,9 @@ Use the Rust toolchain pinned in `codex-rs/rust-toolchain.toml` and the platform
 
 ```sh
 cd codex-rs
-cargo build --release --bin codex
+cargo build --release --bin codex --bin codex-code-mode-host
 cd ..
+cd scripts/providers && npm ci && cd ../..
 node scripts/ukis-codex.mjs
 ```
 
@@ -41,16 +42,13 @@ To install `ukis` in a user command directory already on PATH:
 
 If you already have another Ukis application, pass its executable path with `-LegacyExecutable` to preserve it as `ukis-legacy`. The installer checks for conflicting wrapper files. Run `ukis` from any project folder; arguments and the current working directory are passed through to the CLI.
 
-## Claude models
+## Models and reasoning effort
 
-Use your Claude subscription in the same Ukis Codex terminal:
+Run `ukis`, then type `/model` to switch between OpenAI and Claude in the same conversation. The menu includes Fable when available through your Claude account. After selecting a model, choose its reasoning effort; advanced levels such as Max appear under **More reasoning…**. Model choices and supported effort levels are discovered from Claude Code on each launch.
 
-```powershell
-ukis claude
-ukis claude -m opus
-```
+Install the provider dependencies with `npm ci` from `scripts/providers`, and sign into your Claude subscription with `claude auth login`. OpenAI uses your existing Codex login. See [setup, behavior, and limitations](scripts/providers/README.md).
 
-This optional experimental provider uses the official Claude Agent SDK while Codex continues to handle tools, approvals, and the sandbox. Install its dependencies with `npm ci` from `scripts/providers`, and sign in with `claude auth login`. See [Claude setup, behavior, and limitations](scripts/providers/README.md). Plain `ukis` keeps your existing provider setup; `ukis --provider openai` explicitly selects OpenAI.
+This experimental integration uses the official Claude Agent SDK while Codex handles the conversation, tools, approvals, and sandbox. `ukis --provider openai` starts the native OpenAI provider; the older `ukis claude` command is still available for Claude-only sessions.
 
 ## Development
 

@@ -29,10 +29,10 @@ let configuration;
 try {
   const { provider, args } = providerOptions(process.argv.slice(2));
   if (
-    provider === "claude" &&
+    provider !== "openai" &&
     !args.some((arg) => ["--help", "-h", "--version", "-V"].includes(arg))
   ) {
-    const { configureClaude } = await import("./providers/launch.mjs").catch(
+    const { configureModels } = await import("./providers/launch.mjs").catch(
       (error) => {
         if (error.code === "ERR_MODULE_NOT_FOUND")
           throw new Error(
@@ -41,7 +41,9 @@ try {
         throw error;
       },
     );
-    configuration = await configureClaude(args, root);
+    configuration = await configureModels(args, root, {
+      claudeOnly: provider === "claude",
+    });
   } else {
     if (provider === "openai") args.unshift("-c", 'model_provider="openai"');
     configuration = { args, env: process.env, close: async () => {} };

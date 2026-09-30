@@ -24,6 +24,7 @@ const customTool = {
 };
 const request = {
   model: "sonnet",
+  reasoning: { effort: "high" },
   instructions: "Be helpful.",
   input: [
     {
@@ -101,6 +102,7 @@ test("streams text and parallel namespaced function/freeform calls back to Codex
       assert.deepEqual(options.tools, []);
       assert.deepEqual(options.settingSources, []);
       assert.equal(options.persistSession, false);
+      assert.equal(options.effort, "high");
     }),
   });
   assert.equal(

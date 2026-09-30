@@ -27,4 +27,4 @@ jobs:
         working-directory: scripts/providers
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Test provider protocol, tools, and cancellation
-        run: node --test scripts/providers/provider.test.mjs
+        run: node --test scripts/providers/provider.test.mjs scripts/providers/unified.test.mjs

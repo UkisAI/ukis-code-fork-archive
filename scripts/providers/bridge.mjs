@@ -6,11 +6,16 @@ export async function startBridge({
   executable,
   cwd,
   runTurn = runClaudeTurn,
+  route,
+  sessionHeader,
 }) {
   const token = randomBytes(32).toString("hex");
   const active = new Set();
   const server = http.createServer(async (req, res) => {
-    if (req.headers.authorization !== `Bearer ${token}` || req.headers.origin) {
+    const authenticated = sessionHeader
+      ? req.headers[sessionHeader] === token
+      : req.headers.authorization === `Bearer ${token}`;
+    if (!authenticated || req.headers.origin) {
       res.writeHead(403).end("Forbidden");
       return;
     }
@@ -40,7 +45,13 @@ export async function startBridge({
         }
         chunks.push(chunk);
       }
-      const request = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      const body = Buffer.concat(chunks);
+      const request = JSON.parse(body.toString("utf8"));
+      if (
+        route &&
+        (await route(request, { req, res, body, signal: controller.signal }))
+      )
+        return;
       if (!request.stream || request.previous_response_id)
         throw new Error("Claude requires streamed requests with full history.");
       res.writeHead(200, {

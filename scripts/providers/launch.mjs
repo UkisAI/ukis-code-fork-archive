@@ -1,13 +1,16 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { startBridge } from "./bridge.mjs";
-import { subscriptionEnvironment } from "./claude-turn.mjs";
+import {
+  discoverClaudeModels,
+  claudeCatalog,
+  isClaudeModel,
+} from "./catalog.mjs";
+import { routeModel } from "./openai-forward.mjs";
 
-export async function configureClaude(args, root) {
+export async function configureModels(args, root, { claudeOnly = false } = {}) {
   const defaultBinary = path.join(
     homedir(),
     ".local",
@@ -17,39 +20,10 @@ export async function configureClaude(args, root) {
   const executable =
     process.env.UKIS_CLAUDE_BIN ||
     (existsSync(defaultBinary) ? defaultBinary : "claude");
-  const { stdout } = await promisify(execFile)(executable, ["auth", "status"], {
-    env: subscriptionEnvironment(),
-    windowsHide: true,
-    timeout: 15_000,
-  }).catch(() => {
-    throw new Error(
-      "Claude Code is required. Install it and run: claude auth login",
-    );
-  });
-  const auth = JSON.parse(stdout);
-  if (
-    !auth.loggedIn ||
-    auth.authMethod !== "claude.ai" ||
-    auth.apiProvider !== "firstParty"
-  ) {
-    throw new Error(
-      "Sign into your Claude subscription first: claude auth login",
-    );
-  }
-  const separator = args.indexOf("--");
-  const options = separator < 0 ? args : args.slice(0, separator);
-  const modelFlag = options.findIndex(
-    (arg) => arg === "-m" || arg === "--model",
-  );
-  const inlineModel = options.find((arg) => arg.startsWith("--model="));
-  const selected =
-    modelFlag >= 0 ? options[modelFlag + 1] : inlineModel?.slice(8) || "sonnet";
-  if (!selected || !/^[a-zA-Z0-9._:[\]-]+$/.test(selected))
-    throw new Error("Provide a valid Claude model with -m.");
-  const directory = await mkdtemp(path.join(tmpdir(), "ukis-claude-"));
+  const directory = await mkdtemp(path.join(tmpdir(), "ukis-models-"));
   if (
     path.dirname(path.resolve(directory)) !== path.resolve(tmpdir()) ||
-    !path.basename(directory).startsWith("ukis-claude-")
+    !path.basename(directory).startsWith("ukis-models-")
   ) {
     throw new Error("Unexpected temporary provider directory.");
   }
@@ -59,55 +33,79 @@ export async function configureClaude(args, root) {
       path.join(root, "codex-rs", "models-manager", "prompt.md"),
       "utf8",
     );
-    const models = [...new Set([selected, "sonnet", "opus"])].map(
-      (slug, priority) => ({
-        slug,
-        display_name: `Claude ${slug}`,
-        description: "Claude Code subscription through Ukis",
-        supported_reasoning_levels: [],
-        shell_type: "unified_exec",
-        visibility: "list",
-        supported_in_api: true,
-        priority,
-        support_verbosity: false,
-        apply_patch_tool_type: "freeform",
-        truncation_policy: { mode: "tokens", limit: 10000 },
-        context_window: 160000,
-        auto_compact_token_limit: 120000,
-        experimental_supported_tools: [],
-        input_modalities: ["text", "image"],
-        supports_reasoning_summary_parameter: false,
-        model_messages: { instructions_template: instructions },
-      }),
+    const rows = await discoverClaudeModels(executable, directory).catch(
+      (error) => {
+        if (claudeOnly) throw error;
+        console.error(
+          "Claude model discovery is unavailable. Install Claude Code and run claude auth login to add it to /model.",
+        );
+        return [];
+      },
     );
+    let openai = { models: [] };
+    if (!claudeOnly) {
+      const cache = path.join(
+        process.env.CODEX_HOME || path.join(homedir(), ".codex"),
+        "models_cache.json",
+      );
+      openai = await readFile(cache, "utf8")
+        .then(JSON.parse)
+        .catch(() =>
+          readFile(
+            path.join(root, "codex-rs", "models-manager", "models.json"),
+            "utf8",
+          ).then(JSON.parse),
+        );
+    }
+    const models = [
+      ...openai.models.filter((model) => !isClaudeModel(model.slug)),
+      ...claudeCatalog(rows, instructions),
+    ];
+    if (!models.length)
+      throw new Error("No models are available. Check your provider login.");
     const catalog = path.join(directory, "models.json");
     await writeFile(catalog, JSON.stringify({ models }));
-    bridge = await startBridge({ executable, cwd: directory });
+    bridge = await startBridge({
+      executable,
+      cwd: directory,
+      sessionHeader: "x-ukis-session",
+      route: (request, context) => routeModel(request, context, { claudeOnly }),
+    });
     const overrides = {
-      "model_provider": "ukis_claude",
+      "model_provider": "ukis",
       "model_catalog_json": catalog,
-      "web_search": "disabled",
-      "model_providers.ukis_claude.name": "Claude subscription",
-      "model_providers.ukis_claude.base_url": bridge.url,
-      "model_providers.ukis_claude.env_key": "UKIS_CLAUDE_BRIDGE_TOKEN",
-      "model_providers.ukis_claude.wire_api": "responses",
-      "model_providers.ukis_claude.requires_openai_auth": false,
-      "model_providers.ukis_claude.supports_websockets": false,
-      "model_providers.ukis_claude.request_max_retries": 0,
-      "model_providers.ukis_claude.stream_max_retries": 0,
-      "model_providers.ukis_claude.stream_idle_timeout_ms": 600000,
+      "model_providers.ukis.name": "Ukis",
+      "model_providers.ukis.base_url": bridge.url,
+      "model_providers.ukis.env_http_headers.x-ukis-session":
+        "UKIS_PROVIDER_TOKEN",
+      "model_providers.ukis.wire_api": "responses",
+      "model_providers.ukis.requires_openai_auth": !claudeOnly,
+      "model_providers.ukis.supports_websockets": false,
+      "model_providers.ukis.request_max_retries": 0,
+      "model_providers.ukis.stream_max_retries": 0,
+      "model_providers.ukis.stream_idle_timeout_ms": 600000,
     };
     const flags = Object.entries(overrides).flatMap(([key, value]) => [
       "-c",
       `${key}=${JSON.stringify(value)}`,
     ]);
-    if (modelFlag < 0 && !inlineModel) flags.push("-m", selected);
+    const separator = args.indexOf("--");
+    const options = separator < 0 ? args : args.slice(0, separator);
+    if (
+      claudeOnly &&
+      !options.some(
+        (arg) =>
+          arg === "-m" || arg === "--model" || arg.startsWith("--model="),
+      )
+    ) {
+      flags.push("-m", "sonnet");
+    }
     return {
       args:
         separator < 0
           ? [...args, ...flags]
           : [...options, ...flags, ...args.slice(separator)],
-      env: { ...process.env, UKIS_CLAUDE_BRIDGE_TOKEN: bridge.token },
+      env: { ...process.env, UKIS_PROVIDER_TOKEN: bridge.token },
       async close() {
         await bridge.close();
         await rm(directory, { recursive: true, force: true });
