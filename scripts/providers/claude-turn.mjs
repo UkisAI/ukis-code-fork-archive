@@ -69,6 +69,23 @@ export function subscriptionEnvironment(env = process.env) {
   return result;
 }
 
+// Claude thinking becomes a Responses reasoning item so Codex stores it in the
+// rollout like any other reasoning. The ids are minted here, never by OpenAI,
+// so openai-forward.mjs drops these items before an OpenAI turn.
+export const UKIS_REASONING_PREFIX = "rs_ukis_";
+
+// Summarized is the most Claude exposes; raw chain of thought is never sent.
+// UKIS_CLAUDE_THINKING_DISPLAY=omitted hides it, =default keeps the SDK choice.
+export function thinkingOption(env = process.env) {
+  const display = env.UKIS_CLAUDE_THINKING_DISPLAY || "summarized";
+  if (display === "default") return undefined;
+  if (!["summarized", "omitted"].includes(display))
+    throw new Error(
+      "UKIS_CLAUDE_THINKING_DISPLAY must be summarized, omitted or default.",
+    );
+  return { type: "adaptive", display };
+}
+
 export async function runClaudeTurn(
   request,
   { signal, emit, executable, cwd, queryImpl = query },
@@ -113,6 +130,9 @@ export async function runClaudeTurn(
   let toolTurn = false;
   let completed = false;
   const send = (type, rest = {}) => emit({ type, ...rest });
+  // Both OpenAI's encrypted reasoning and our own rs_ukis_ thinking summaries
+  // are dropped: Claude cannot verify either, and the summaries are records,
+  // not state Claude needs back.
   const history = request.input.filter((item) => item.type !== "reasoning");
   const images = [];
   const transcript = JSON.stringify(history, (key, value) => {
@@ -165,6 +185,7 @@ export async function runClaudeTurn(
       )
         ? request.reasoning.effort
         : undefined,
+      thinking: thinkingOption(),
       tools: [],
       mcpServers: { ukis: server },
       strictMcpConfig: true,
@@ -179,6 +200,14 @@ export async function runClaudeTurn(
       abortController: controller,
     },
   });
+  const announce = (block) => {
+    block.outputIndex = output.length;
+    output.push(block.item);
+    send("response.output_item.added", {
+      output_index: block.outputIndex,
+      item: block.item,
+    });
+  };
   send("response.created", { response: { id, status: "in_progress" } });
   try {
     for await (const message of stream) {
@@ -221,13 +250,16 @@ export async function runClaudeTurn(
             };
             toolTurn = true;
           }
-          if (block.item) {
-            output.push(block.item);
-            send("response.output_item.added", {
-              output_index: block.outputIndex,
-              item: block.item,
-            });
-          }
+          // Announced on its first summary text instead: with display
+          // "omitted" the block stays empty and would add a blank item.
+          if (block.type === "thinking")
+            block.reasoning = {
+              type: "reasoning",
+              id: `${UKIS_REASONING_PREFIX}${randomUUID()}`,
+              summary: [],
+              encrypted_content: null,
+            };
+          if (block.item) announce(block);
           blocks.set(event.index, block);
         }
         if (event.type === "content_block_delta") {
@@ -246,6 +278,30 @@ export async function runClaudeTurn(
             block?.type === "tool_use"
           )
             block.json += event.delta.partial_json;
+          if (
+            event.delta.type === "thinking_delta" &&
+            block?.type === "thinking" &&
+            event.delta.thinking
+          ) {
+            // Signatures are Anthropic-only replay state and are not kept.
+            if (!block.item) {
+              block.item = block.reasoning;
+              announce(block);
+              send("response.reasoning_summary_part.added", {
+                item_id: block.item.id,
+                output_index: block.outputIndex,
+                summary_index: 0,
+                part: { type: "summary_text", text: "" },
+              });
+            }
+            block.thinking += event.delta.thinking;
+            send("response.reasoning_summary_text.delta", {
+              item_id: block.item.id,
+              output_index: block.outputIndex,
+              summary_index: 0,
+              delta: event.delta.thinking,
+            });
+          }
         }
         if (event.type === "content_block_stop") {
           const block = blocks.get(event.index);
@@ -258,6 +314,20 @@ export async function runClaudeTurn(
                 throw new Error("Claude returned invalid freeform tool input.");
               block.item.input = input.input;
             } else block.item.arguments = JSON.stringify(input);
+          }
+          if (block?.type === "thinking" && block.item) {
+            const text = block.thinking;
+            block.item.summary = [{ type: "summary_text", text }];
+            const part = {
+              item_id: block.item.id,
+              output_index: block.outputIndex,
+              summary_index: 0,
+            };
+            send("response.reasoning_summary_text.done", { ...part, text });
+            send("response.reasoning_summary_part.done", {
+              ...part,
+              part: { type: "summary_text", text },
+            });
           }
           if (block?.item)
             send("response.output_item.done", {

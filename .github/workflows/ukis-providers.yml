@@ -5,6 +5,7 @@ on:
     paths:
       - "scripts/providers/**"
       - "scripts/provider-options.mjs"
+      - "scripts/recording.mjs"
       - "scripts/ukis-code.mjs"
       - "scripts/ukis-window.mjs"
       - "scripts/ukis-terminal.ps1"

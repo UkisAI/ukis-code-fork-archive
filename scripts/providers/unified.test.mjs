@@ -99,6 +99,45 @@ test("one local endpoint routes successive OpenAI and Claude models and preserve
   assert.equal(calls[0].request.tools[0].type, "web_search");
 });
 
+test("Claude reasoning items are dropped before an OpenAI turn, other bodies pass through unchanged", async () => {
+  const forwarded = [];
+  const forward = async ({ body }) => forwarded.push(body);
+  const message = {
+    type: "message",
+    role: "user",
+    content: [{ type: "input_text", text: "hi" }],
+  };
+  const openaiReasoning = {
+    type: "reasoning",
+    id: "rs_0a1b",
+    summary: [],
+    encrypted_content: "opaque",
+  };
+  const request = {
+    model: "gpt-test",
+    input: [
+      message,
+      {
+        type: "reasoning",
+        id: "rs_ukis_1",
+        summary: [{ type: "summary_text", text: "Claude thought." }],
+        encrypted_content: null,
+      },
+      openaiReasoning,
+    ],
+  };
+  const body = Buffer.from(JSON.stringify(request));
+  assert.equal(await routeModel(request, { body }, { forward }), true);
+  assert.deepEqual(JSON.parse(forwarded[0]), {
+    model: "gpt-test",
+    input: [message, openaiReasoning],
+  });
+  const clean = { model: "gpt-test", input: [message] };
+  const cleanBody = Buffer.from(JSON.stringify(clean));
+  await routeModel(clean, { body: cleanBody }, { forward });
+  assert.equal(forwarded[1], cleanBody);
+});
+
 test("OpenAI forwarding keeps native auth, status and streaming, without leaking the local token", async () => {
   for (const account of [undefined, "account-test"]) {
     const output = [];

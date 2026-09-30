@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { providerOptions } from "./provider-options.mjs";
+import { recordingEnvironment, recordingWarning } from "./recording.mjs";
 import { openUkisWindow, shouldOpenUkisWindow } from "./ukis-window.mjs";
 
 if (process.argv[2] === "window") {
@@ -60,9 +61,12 @@ try {
     if (provider === "openai") args.unshift("-c", 'model_provider="openai"');
     configuration = { args, env: process.env, close: async () => {} };
   }
+  // Applied here so both the native OpenAI path and the bridge path record.
+  const warning = recordingWarning(configuration.env, configuration.args);
+  if (warning) console.error(warning);
   const child = spawn(executable, configuration.args, {
     stdio: "inherit",
-    env: configuration.env,
+    env: recordingEnvironment(configuration.env),
   });
   for (const signal of ["SIGINT", "SIGTERM"])
     process.on(signal, () => child.kill(signal));

@@ -1,4 +1,5 @@
 import { isClaudeModel } from "./catalog.mjs";
+import { UKIS_REASONING_PREFIX } from "./claude-turn.mjs";
 // Codex owns OpenAI authentication and refresh. Forward its request only to
 // the official endpoint for that authentication mode, never to Claude.
 const HOP_HEADERS = new Set([
@@ -70,6 +71,20 @@ export async function routeModel(
   }
   if (claudeOnly)
     throw new Error("Launch ukis to select both OpenAI and Claude models.");
+  // Claude thinking summaries carry bridge-minted ids that OpenAI has never
+  // issued, so it would reject the request after a Claude -> OpenAI switch.
+  // The rollout keeps them; only this outgoing copy loses them. The body is
+  // rewritten only when something was removed, otherwise bytes pass through.
+  const input = Array.isArray(request.input) ? request.input : [];
+  const kept = input.filter(
+    (item) =>
+      item?.type !== "reasoning" ||
+      !String(item.id ?? "").startsWith(UKIS_REASONING_PREFIX),
+  );
+  if (kept.length !== input.length) {
+    request.input = kept;
+    context = { ...context, body: Buffer.from(JSON.stringify(request)) };
+  }
   await forward(context);
   return true;
 }
