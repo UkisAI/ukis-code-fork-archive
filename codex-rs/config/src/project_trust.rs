@@ -2,6 +2,7 @@
 
 use crate::config_toml::ConfigToml;
 use crate::config_toml::ProjectConfig;
+use codex_utils_path::normalize_for_native_workdir;
 use codex_utils_path::normalize_for_path_comparison;
 use codex_utils_path_uri::PathConvention;
 use std::path::Path;
@@ -32,7 +33,13 @@ impl ProjectTrustLookup {
                 original: path.to_string_lossy().into_owned(),
                 canonical: normalize_for_path_comparison(path)
                     .ok()
-                    .map(|path| path.to_string_lossy().into_owned()),
+                    // Match the persisted trust key's native Windows spelling,
+                    // including when the original cwd used a short (8.3) path.
+                    .map(|path| {
+                        normalize_for_native_workdir(path)
+                            .to_string_lossy()
+                            .into_owned()
+                    }),
             },
             /*repo_root*/ None,
         )

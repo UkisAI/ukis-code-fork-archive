@@ -447,26 +447,39 @@ async fn exit_interrupts_before_requesting_shutdown() -> Result<()> {
     // the directory also releases it if the test fails before reaching the exit.
     let running = tempdir()?;
     let running_path = running.path().to_string_lossy();
+    let ready = running.path().join("ready");
+    let ready_path = ready.to_string_lossy();
     let command = if cfg!(windows) {
         format!(
-            "Write-Output 'exit-test-ready'; while (Test-Path -LiteralPath '{}') {{ Start-Sleep -Milliseconds 100 }}",
+            "[IO.File]::WriteAllText('{}', 'ready'); while (Test-Path -LiteralPath '{}') {{ Start-Sleep -Milliseconds 100 }}",
+            ready_path.replace('\'', "''"),
             running_path.replace('\'', "''"),
         )
     } else {
         format!(
-            "printf 'exit-test-ready\\n'; while [ -d {} ]; do sleep 0.1; done",
+            "printf ready > {}; while [ -d {} ]; do sleep 0.1; done",
+            shlex::try_quote(&ready_path)?,
             shlex::try_quote(&running_path)?,
         )
     };
     app_server.thread_shell_command(thread_id, command).await?;
-    let turn_id = time::timeout(Duration::from_secs(/*secs*/ 10), async {
-        let mut turn_id = None;
-        let mut output = String::new();
+    // Observe the child itself, independently of shell output buffering. This
+    // test exercises interruption, not output delivery. Allow shell startup on
+    // shared Windows runners without interrupting before the process exists.
+    let turn_id = time::timeout(Duration::from_secs(/*secs*/ 30), async {
+        let mut turn_id: Option<String> = None;
         loop {
-            let event = app_server
-                .next_event()
-                .await
-                .expect("app-server event stream should remain open");
+            if ready.is_file()
+                && let Some(turn_id) = turn_id.as_ref()
+            {
+                break turn_id.clone();
+            }
+            let event = tokio::select! {
+                event = app_server.next_event() => {
+                    event.expect("app-server event stream should remain open")
+                }
+                _ = time::sleep(Duration::from_millis(/*millis*/ 25)) => continue,
+            };
             if let codex_app_server_client::AppServerEvent::ServerNotification(notification) = event
             {
                 match notification.as_ref() {
@@ -475,11 +488,6 @@ async fn exit_interrupts_before_requesting_shutdown() -> Result<()> {
                     {
                         turn_id = Some(notification.turn.id.clone());
                     }
-                    ServerNotification::CommandExecutionOutputDelta(notification)
-                        if notification.thread_id == thread_id.to_string() =>
-                    {
-                        output.push_str(&notification.delta);
-                    }
                     ServerNotification::TurnCompleted(notification)
                         if notification.thread_id == thread_id.to_string() =>
                     {
@@ -487,11 +495,6 @@ async fn exit_interrupts_before_requesting_shutdown() -> Result<()> {
                     }
                     _ => {}
                 }
-            }
-            if output.contains("exit-test-ready")
-                && let Some(turn_id) = turn_id.as_ref()
-            {
-                break turn_id.clone();
             }
         }
     })

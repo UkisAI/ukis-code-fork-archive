@@ -89,3 +89,21 @@ fn windows_prefers_exact_normalized_key_then_sorted_aliases() {
         ],
     );
 }
+
+#[test]
+fn native_project_lookup_matches_persisted_trust_for_canonical_paths() {
+    let directory = tempfile::tempdir().unwrap();
+    let canonical = directory.path().canonicalize().unwrap();
+    let key = crate::loader::project_trust_key(directory.path());
+    for trust in [TrustLevel::Trusted, TrustLevel::Untrusted] {
+        let config = config_with_projects(&[(&key, Some(trust))]);
+        for path in [directory.path(), canonical.as_path()] {
+            assert_eq!(
+                config.get_active_project(path, /*repo_root*/ None),
+                Some(ProjectConfig {
+                    trust_level: Some(trust)
+                }),
+            );
+        }
+    }
+}

@@ -84,12 +84,12 @@ jobs:
       - name: Run TUI tests
         if: inputs.run_tui_tests && inputs.build_mode == 'full'
         working-directory: codex-rs
-        run: just test -p codex-tui --cargo-profile dev-small --target x86_64-pc-windows-msvc
+        run: just test -p codex-config -p codex-tui --cargo-profile dev-small --target x86_64-pc-windows-msvc
       - name: Check TUI Clippy fixes
         if: inputs.run_tui_tests && inputs.build_mode == 'full'
         working-directory: codex-rs
         run: |
-          just fix -p codex-tui --profile dev-small --target x86_64-pc-windows-msvc
+          just fix -p codex-config -p codex-tui --profile dev-small --target x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           git diff --exit-code
       - name: Upload changed TUI snapshots
