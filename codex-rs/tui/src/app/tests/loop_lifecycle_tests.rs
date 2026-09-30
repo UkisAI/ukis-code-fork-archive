@@ -67,3 +67,63 @@ async fn loop_controls_are_registered_on_initial_new_resumed_and_forked_threads(
     proxy.await??;
     Ok(())
 }
+
+#[tokio::test]
+async fn loop_cancel_reaches_the_controller_through_disconnected_input() -> Result<()> {
+    let (mut app, mut events, _ops) = make_test_app_with_channels().await;
+    let id = ThreadId::new();
+    app.active_thread_id = Some(id);
+    app.chat_widget
+        .handle_thread_session(test_thread_session(id, app.config.cwd.to_path_buf()));
+    app.chat_widget.handle_loop_command(
+        "1m check",
+        Instant::now(),
+        crate::chatwidget::loops::LoopAvailability::FixedOnly,
+    );
+    assert!(app.chat_widget.has_loop_tasks());
+    let mut server = crate::start_embedded_app_server_for_picker(&app.config).await?;
+    let mut tui = crate::tui::test_support::make_test_tui()?;
+    app.reconnect.offline = true;
+    app.chat_widget
+        .restore_user_message_to_composer("/loop stop".into());
+    app.handle_tui_event(
+        &mut tui,
+        &mut server,
+        TuiEvent::Key(KeyEvent::from(KeyCode::Enter)),
+    )
+    .await?;
+    let mut dispatched = false;
+    while let Ok(event) = events.try_recv() {
+        if matches!(event, AppEvent::LoopCommand { .. }) {
+            dispatched = true;
+            app.handle_event(&mut tui, &mut server, event).await?;
+        }
+    }
+    assert!(dispatched);
+    assert!(!app.chat_widget.has_loop_tasks());
+    app.handle_event(
+        &mut tui,
+        &mut server,
+        AppEvent::LoopCommand {
+            thread_id: Some(id),
+            args: "1m another task".into(),
+        },
+    )
+    .await?;
+    assert!(!app.chat_widget.has_loop_tasks());
+    let (reply, result) = tokio::sync::oneshot::channel();
+    app.handle_event(
+        &mut tui,
+        &mut server,
+        AppEvent::LoopToolCall {
+            thread_id: id.to_string(),
+            turn_id: "old-turn".into(),
+            arguments: serde_json::json!({}),
+            reply,
+        },
+    )
+    .await?;
+    assert!(result.await?.unwrap_err().contains("disconnected"));
+    server.shutdown().await?;
+    Ok(())
+}

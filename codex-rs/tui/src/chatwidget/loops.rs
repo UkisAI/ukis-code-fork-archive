@@ -67,7 +67,7 @@ impl ChatWidget {
                 }
                 LoopCommand::Start { cadence, prompt } => {
                     if matches!(availability, LoopAvailability::Disconnected) {
-                        return Err("Reconnect before starting a loop. Existing loops can still be listed or stopped.".into());
+                        return Err("Connect to an available conversation before starting a loop. Existing loops can still be listed or stopped.".into());
                     }
                     if cadence == Cadence::Adaptive && matches!(availability, LoopAvailability::FixedOnly) {
                         return Err("Adaptive loop controls are unavailable on this connection. Use an explicit interval, such as /loop 5m check CI.".into());

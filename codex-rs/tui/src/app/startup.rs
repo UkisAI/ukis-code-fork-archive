@@ -1159,6 +1159,7 @@ See the Codex keymap documentation for supported actions and examples."
                 let control = select! {
                     _ = loop_tick.tick(), if app.chat_widget.has_loop_tasks()
                         && !has_pending_app_events && !app.reconnect.offline
+                        && !app.chat_widget.thread_id().is_some_and(|id| app.thread_unavailable(id))
                         && app.pending_thread_switch_resets == 0
                         && app.overlay.is_none() => {
                         app.chat_widget.poll_loops(Instant::now());
