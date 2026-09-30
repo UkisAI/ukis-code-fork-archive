@@ -9,8 +9,13 @@ import {
   isClaudeModel,
 } from "./catalog.mjs";
 import { routeModel } from "./openai-forward.mjs";
+import { discoverOpenAIModels } from "./openai-catalog.mjs";
 
-export async function configureModels(args, root, { claudeOnly = false } = {}) {
+export async function configureModels(
+  args,
+  root,
+  { claudeOnly = false, codexExecutable } = {},
+) {
   const defaultBinary = path.join(
     homedir(),
     ".local",
@@ -44,18 +49,10 @@ export async function configureModels(args, root, { claudeOnly = false } = {}) {
     );
     let openai = { models: [] };
     if (!claudeOnly) {
-      const cache = path.join(
-        process.env.CODEX_HOME || path.join(homedir(), ".codex"),
-        "models_cache.json",
+      openai = await discoverOpenAIModels(
+        codexExecutable,
+        path.join(root, "codex-rs", "models-manager", "models.json"),
       );
-      openai = await readFile(cache, "utf8")
-        .then(JSON.parse)
-        .catch(() =>
-          readFile(
-            path.join(root, "codex-rs", "models-manager", "models.json"),
-            "utf8",
-          ).then(JSON.parse),
-        );
     }
     const models = [
       ...openai.models.filter((model) => !isClaudeModel(model.slug)),

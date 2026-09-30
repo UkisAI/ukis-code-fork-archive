@@ -43,6 +43,7 @@ try {
     );
     configuration = await configureModels(args, root, {
       claudeOnly: provider === "claude",
+      codexExecutable: executable,
     });
   } else {
     if (provider === "openai") args.unshift("-c", 'model_provider="openai"');

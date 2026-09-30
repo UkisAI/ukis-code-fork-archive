@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { discoverOpenAIModels } from "./openai-catalog.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
@@ -139,5 +141,62 @@ test("OpenAI forwarding keeps native auth, status and streaming, without leaking
     });
     assert.equal(output[0].status, 200);
     assert.match(output.slice(1).join(""), /response.completed/);
+  }
+});
+
+test("OpenAI discovery uses the native catalog and preserves model capabilities and effort metadata", async () => {
+  const catalog = {
+    models: [
+      {
+        slug: "gpt-6.1-sol",
+        visibility: "list",
+        supported_reasoning_levels: [
+          { effort: "max", description: "Maximum reasoning" },
+        ],
+        model_messages: {
+          instructions_template: "Model-specific instructions",
+        },
+        context_window: 1050000,
+        future_capability: { enabled: true },
+      },
+    ],
+  };
+  const warnings = [];
+  const actual = await discoverOpenAIModels("codex-test", "unused-bundle", {
+    run: async (executable, args, options) => {
+      assert.equal(executable, "codex-test");
+      assert.deepEqual(args, [
+        "debug",
+        "models",
+        "-c",
+        'model_provider="openai"',
+      ]);
+      assert.ok(options.timeout > 0);
+      assert.equal(options.windowsHide, true);
+      return { stdout: JSON.stringify(catalog) };
+    },
+    warn: (message) => warnings.push(message),
+  });
+  assert.deepEqual(actual, catalog);
+  assert.deepEqual(warnings, []);
+});
+
+test("unavailable or malformed native discovery falls back to the build's complete catalog", async () => {
+  const bundledPath = new URL(
+    "../../codex-rs/models-manager/models.json",
+    import.meta.url,
+  );
+  const expected = JSON.parse(await readFile(bundledPath, "utf8"));
+  for (const output of [null, "invalid-json", '{"models":[]}']) {
+    const warnings = [];
+    const actual = await discoverOpenAIModels("codex-test", bundledPath, {
+      run: async () => {
+        if (output === null) throw new Error("Timed out");
+        return { stdout: output };
+      },
+      warn: (message) => warnings.push(message),
+    });
+    assert.deepEqual(actual, expected);
+    assert.equal(warnings.length, 1);
   }
 });

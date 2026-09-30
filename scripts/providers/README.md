@@ -2,7 +2,7 @@
 
 Run `ukis`, then use `/model` inside the terminal to choose an OpenAI or Claude model. Selecting a model opens its supported reasoning levels. Choose **More reasoning…** for advanced levels such as **Max**, when available. Press **s** to apply a choice only to the current session.
 
-Claude's model list and effort levels come from the official Claude Agent SDK on each launch. This includes Fable when the installed Claude Code and signed-in account advertise it. Models without effort support, such as Haiku, do not show effort choices. OpenAI models come from the local Codex model cache, with the bundled catalog as a fallback.
+Claude's model list and effort levels come from the official Claude Agent SDK on each launch. This includes Fable when the installed Claude Code and signed-in account advertise it. Models without effort support, such as Haiku, do not show effort choices. OpenAI models come from the compiled Codex executable's native discovery on each launch. Native discovery handles authentication, cache freshness, and remote refresh; the bundled catalog is used if discovery is unavailable. The launcher preserves complete model metadata, including instructions, capabilities, and supported efforts.
 
 ## Setup
 
