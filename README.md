@@ -48,10 +48,10 @@ The website's **IBM Plex Mono** is available as a dedicated Windows Terminal pro
 
 ```powershell
 powershell -File scripts/install-ukis-terminal.ps1
-ukis window
+ukis
 ```
 
-`ukis window` opens the current project in that profile. Regular `ukis` uses the font of the terminal where it runs. Avenir and Denton remain website typography; the CLI uses a fixed character grid. See [font source and installation details](branding/fonts/ibm-plex-mono/README.md).
+After installation, plain `ukis` from an interactive Windows shell opens the current project in the Ukis font profile. Inside that profile it runs directly. Commands with arguments and redirected input keep their normal CLI behavior. Avenir and Denton remain website typography; the CLI uses a fixed character grid. See [font source and installation details](branding/fonts/ibm-plex-mono/README.md).
 
 ## Models and reasoning effort
 

@@ -6,6 +6,9 @@ on:
       - "scripts/providers/**"
       - "scripts/provider-options.mjs"
       - "scripts/ukis-codex.mjs"
+      - "scripts/ukis-window.mjs"
+      - "scripts/ukis-terminal.ps1"
+      - "scripts/install-ukis-terminal.ps1"
       - ".github/workflows/ukis-providers.yml"
 permissions:
   contents: read

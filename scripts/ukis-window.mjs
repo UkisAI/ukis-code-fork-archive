@@ -2,20 +2,42 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import path from "node:path";
 
-export async function openUkisWindow(args) {
-  if (process.platform !== "win32" || args.length) {
-    console.error("Use ukis window on Windows, without additional arguments.");
-    return 1;
-  }
-  const profile = path.join(
-    process.env.LOCALAPPDATA || "",
+const profileId = "{4fc3ef90-34ce-5ce0-adf3-7d124d958fb8}";
+function terminalProfilePath(env) {
+  return path.join(
+    env.LOCALAPPDATA || "",
     "Microsoft",
     "Windows Terminal",
     "Fragments",
     "Ukis",
     "ukis.json",
   );
-  if (!existsSync(profile)) {
+}
+
+export function shouldOpenUkisWindow(
+  args,
+  {
+    platform = process.platform,
+    env = process.env,
+    interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
+    installed = existsSync(terminalProfilePath(env)),
+  } = {},
+) {
+  return (
+    platform === "win32" &&
+    interactive &&
+    installed &&
+    args.length === 0 &&
+    env.UKIS_TERMINAL_PROFILE !== profileId
+  );
+}
+
+export async function openUkisWindow(args) {
+  if (process.platform !== "win32" || args.length) {
+    console.error("Use ukis window on Windows, without additional arguments.");
+    return 1;
+  }
+  if (!existsSync(terminalProfilePath(process.env))) {
     console.error(
       "Install the font profile first: powershell -File scripts/install-ukis-terminal.ps1",
     );
