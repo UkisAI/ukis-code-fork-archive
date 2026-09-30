@@ -7,6 +7,10 @@ on:
         type: choice
         default: full
         options: [full, code-mode-host]
+      run_tui_tests:
+        description: Run the complete TUI test package and loop regressions
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -53,6 +57,21 @@ jobs:
       - uses: ./.github/actions/setup-rusty-v8
         with:
           target: x86_64-pc-windows-msvc
+      - uses: taiki-e/install-action@4cef1412cce204788f482e778a0b9187f9626a29 # v2.87.21
+        if: inputs.run_tui_tests
+        with:
+          tool: just@1.51.0,cargo-nextest
+      - name: Restore Windows build cache
+        id: build-cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: |
+            D:\ukis-target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ukis-windows-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            ukis-windows-${{ hashFiles('codex-rs/Cargo.lock', 'codex-rs/rust-toolchain.toml') }}-
       - name: Compile Ukis Code and Windows helpers
         working-directory: codex-rs
         run: |
@@ -61,6 +80,19 @@ jobs:
           } else {
             cargo build --locked --profile dev-small --target x86_64-pc-windows-msvc --bin codex --bin codex-code-mode-host --bin codex-windows-sandbox-setup --bin codex-windows-sandbox-service --bin codex-command-runner
           }
+      - name: Run TUI tests
+        if: inputs.run_tui_tests && inputs.build_mode == 'full'
+        working-directory: codex-rs
+        run: just test -p codex-tui --cargo-profile dev-small --target x86_64-pc-windows-msvc
+      - name: Save Windows build cache
+        if: always() && steps.build-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        with:
+          path: |
+            D:\ukis-target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ steps.build-cache.outputs.cache-primary-key }}
       - name: Verify executable starts
         if: inputs.build_mode != 'code-mode-host'
         run: '& D:\ukis-target\x86_64-pc-windows-msvc\dev-small\codex.exe --version'

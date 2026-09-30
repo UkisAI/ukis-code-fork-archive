@@ -61,6 +61,28 @@ Install the provider dependencies with `npm ci` from `scripts/providers`, and si
 
 This experimental integration uses the official Claude Agent SDK while Codex handles the conversation, tools, approvals, and sandbox. `ukis --provider openai` starts the native OpenAI provider; the older `ukis claude` command is still available for Claude-only sessions.
 
+## Repeat work with /loop
+
+Use a fixed interval or let the selected model choose when to check again:
+
+~~~text
+/loop 5m check whether CI passed
+/loop check the deployment and stop when it finishes
+/loop list
+/loop stop 1
+/loop stop
+~~~
+
+An interval makes a fixed loop; without one, the loop is adaptive. Seconds round up to whole minutes. Fixed intervals such as 7m and 90m keep their exact duration. Adaptive iterations choose a delay of 1–60 minutes through the scheduling tool, or stop when finished. If a model forgets to schedule, Ukis retries once after 20 minutes and then stops.
+
+Bare /loop uses .ukis/loop.md in the current project, then loop.md in your Codex home, then a maintenance prompt scoped to your existing work. Defaults are reloaded each iteration and limited to 8 KiB. An explicit prompt takes precedence.
+
+Loops run one at a time, wait for your turn, draft, and queued messages, and use the current model, effort, sandbox, and approvals. Missed intervals become one run. A failed or interrupted iteration stops its loop. Esc with an empty composer cancels adaptive loops; /loop stop cancels future runs of all loops. An iteration already running can be interrupted separately.
+
+Up to 50 loops can exist in the current conversation, for at most seven days. Schedules live in memory: leaving the conversation or closing Ukis removes them, and resume does not restore them. Adaptive controls require a local app-server connection permitted by your MCP configuration; fixed schedules also work with remote connections.
+
+Behavior is informed by [Anthropic's scheduled-task documentation](https://code.claude.com/docs/en/scheduled-tasks).
+
 ## Development
 
 ```sh
