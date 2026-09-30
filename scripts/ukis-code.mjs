@@ -27,6 +27,7 @@ const candidates = process.env.UKIS_CODE_BIN
   : [
       path.join(target, "release", name),
       path.join(target, "debug", name),
+      path.join(root, "dist", "windows", "ukis-code.exe"),
       path.join(root, "dist", "windows", name),
     ];
 const executable = candidates.find(existsSync);
