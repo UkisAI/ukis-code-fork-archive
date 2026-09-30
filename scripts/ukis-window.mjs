@@ -51,7 +51,7 @@ export async function openUkisWindow(args) {
         "new",
         "new-tab",
         "--profile",
-        "Ukis Code",
+        profileId,
         "--startingDirectory",
         process.cwd(),
       ],

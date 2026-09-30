@@ -83,5 +83,5 @@ foreach ($relativePath in $terminalSettings) {
         (Get-Item -LiteralPath $settingsPath).LastWriteTime = Get-Date
     }
 }
-Write-Host 'Installed IBM Plex Mono and the Ukis Windows Terminal profile.'
+Write-Host 'Installed IBM Plex Mono and the Ukis Code Windows Terminal profile.'
 Write-Host 'Run ukis from any project folder to open it with this font.'
