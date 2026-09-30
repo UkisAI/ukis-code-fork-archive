@@ -29,10 +29,61 @@ fn main() {
             assert!(r < 200 && g < 200 && b < 200);
         }
         println!("FRAME {width} {height} {phase}");
+        let rows = cells
+            .chunks(usize::from(width))
+            .map(|row| {
+                row.iter()
+                    .map(|cell| {
+                        if cell.dots == 0 {
+                            ' '
+                        } else {
+                            char::from_u32(0x2800 + u32::from(cell.dots)).unwrap()
+                        }
+                    })
+                    .collect::<String>()
+                    .trim_end()
+                    .to_owned()
+            })
+            .collect::<Vec<_>>();
+        if width == 48 {
+            verify_snapshot(
+                "snapshots/codex_tui__empty_state_animation__tests__onboarding_settled_logo.snap",
+                &rows.join("\n"),
+            );
+        } else if phase == 0.0 {
+            verify_snapshot(
+                "onboarding/snapshots/codex_tui__onboarding__welcome__tests__welcome_logo_160x48.snap",
+                &format!(
+                    "{}\n\n  Welcome to UkisAI Code, UkisAI's coding agent, powered by Codex",
+                    rows.join("\n")
+                ),
+            );
+        } else {
+            let first = cells.iter().find(|cell| cell.dots != 0).unwrap();
+            let [_, r, g, b] = first.rgb.to_be_bytes();
+            let fade = [(0, 1.0), (200, 0.59), (400, 0.18)].map(|(ms, alpha)| {
+                let (r, g, b) = color::blend((r, g, b), (15, 20, 37), alpha);
+                format!(
+                    "{ms}ms: {} Rgb({r}, {g}, {b})",
+                    char::from_u32(0x2800 + u32::from(first.dots)).unwrap()
+                )
+            });
+            verify_snapshot(
+                "snapshots/codex_tui__empty_state_animation__tests__first_screen_replay_fade.snap",
+                &fade.join("\n"),
+            );
+        }
         for cell in cells {
             println!("{} {}", cell.dots, cell.rgb);
         }
     }
     let first = renderer.frame(60, 21, 0.0, &dark).to_vec();
     assert_eq!(renderer.frame(60, 21, 1.0, &dark), first);
+}
+
+fn verify_snapshot(path: &str, expected: &str) {
+    let snapshot = std::fs::read_to_string(format!("codex-rs/tui/src/{path}")).unwrap();
+    let snapshot = snapshot.replace("\r\n", "\n");
+    let body = snapshot.splitn(3, "---\n").nth(2).unwrap();
+    assert_eq!(body.trim_end(), expected.trim_end(), "{path}");
 }

@@ -8,6 +8,10 @@ This first version brings the UkisAI website's interlocking chain logo and pink 
 
 The coding engine, authentication, permissions, configuration, and protocol names remain compatible with upstream Codex. This repository contains the CLI and app-server source; a Ukis desktop interface is outside this first version.
 
+![UkisAI terminal logo preview](branding/terminal-preview.png)
+
+The preview above uses cells from the compiled production logo renderer.
+
 ## Build and run
 
 Use the Rust toolchain pinned in `codex-rs/rust-toolchain.toml` and the platform prerequisites described in [upstream development instructions](docs/install.md).

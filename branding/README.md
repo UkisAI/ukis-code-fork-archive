@@ -16,3 +16,9 @@ The CLI respects the user's terminal background. Ukis violet drives selected con
 To regenerate the silhouette, install Pillow, NumPy, SciPy, and scikit-image, then run `python branding/trace_logo.py` from the repository root. Review the resulting snapshots with `just test -p codex-tui` and cargo-insta before accepting changes.
 
 Do not rename wire-protocol fields, authentication providers, or `.codex` paths as part of visual branding. Keep upstream license and notice files intact.
+
+## Validation
+
+The Ukis branding workflow compiles the actual geometry, lighting, and renderer modules, checks the animation loop and light-terminal coverage/contrast, and compares rendered frames against the TUI logo snapshots. It also checks Rust formatting. The preview PNG uses those compiled renderer cells. The local Node launcher was checked for syntax, missing-build errors, and argument forwarding.
+
+The full `just test -p codex-tui` suite has not run successfully on the initial Windows workstation: the repository runner requires PowerShell 7, and the machine lacks the full C++ build prerequisites. Ubuntu also has a pre-existing interrupted package-manager state. A packaged CLI binary is not included in this initial branding commit. Inherited OpenAI CI workflows remain present and enabled; some require upstream infrastructure.
