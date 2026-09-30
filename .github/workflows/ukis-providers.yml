@@ -1,0 +1,30 @@
+name: Ukis provider validation
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/providers/**"
+      - "scripts/provider-options.mjs"
+      - "scripts/ukis-codex.mjs"
+      - ".github/workflows/ukis-providers.yml"
+permissions:
+  contents: read
+jobs:
+  providers:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: "22"
+      - name: Install pinned provider dependencies
+        working-directory: scripts/providers
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Test provider protocol, tools, and cancellation
+        run: node --test scripts/providers/provider.test.mjs

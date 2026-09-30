@@ -41,6 +41,17 @@ To install `ukis` in a user command directory already on PATH:
 
 If you already have another Ukis application, pass its executable path with `-LegacyExecutable` to preserve it as `ukis-legacy`. The installer checks for conflicting wrapper files. Run `ukis` from any project folder; arguments and the current working directory are passed through to the CLI.
 
+## Claude models
+
+Use your Claude subscription in the same Ukis Codex terminal:
+
+```powershell
+ukis claude
+ukis claude -m opus
+```
+
+This optional experimental provider uses the official Claude Agent SDK while Codex continues to handle tools, approvals, and the sandbox. Install its dependencies with `npm ci` from `scripts/providers`, and sign in with `claude auth login`. See [Claude setup, behavior, and limitations](scripts/providers/README.md). Plain `ukis` keeps your existing provider setup; `ukis --provider openai` explicitly selects OpenAI.
+
 ## Development
 
 ```sh
@@ -50,7 +61,7 @@ just fmt
 
 Brand assets and implementation details are documented in [branding/README.md](branding/README.md). [UPSTREAM.md](UPSTREAM.md) preserves OpenAI's original README; its download links install upstream Codex, not this branded build.
 
-Keep an `upstream` remote pointing to `https://github.com/openai/codex.git` when bringing in updates. Brand changes are limited to the TUI presentation layer and launcher so future features can build on the existing engine.
+Keep an `upstream` remote pointing to `https://github.com/openai/codex.git` when bringing in updates. Brand changes stay in the TUI presentation layer; optional provider integration lives in the launcher and `scripts/providers`.
 
 ## Attribution
 

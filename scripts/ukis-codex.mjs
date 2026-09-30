@@ -5,6 +5,8 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { providerOptions } from "./provider-options.mjs";
+
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const target = process.env.CARGO_TARGET_DIR
   ? path.resolve(process.env.CARGO_TARGET_DIR)
@@ -23,14 +25,42 @@ if (!executable) {
   console.error("  cd codex-rs && cargo build --release --bin codex");
   process.exit(1);
 }
-const child = spawn(executable, process.argv.slice(2), { stdio: "inherit" });
-for (const signal of ["SIGINT", "SIGTERM"]) {
-  process.on(signal, () => child.kill(signal));
-}
-child.on("error", (error) => {
-  console.error(`Unable to start Ukis Codex: ${error.message}`);
+let configuration;
+try {
+  const { provider, args } = providerOptions(process.argv.slice(2));
+  if (
+    provider === "claude" &&
+    !args.some((arg) => ["--help", "-h", "--version", "-V"].includes(arg))
+  ) {
+    const { configureClaude } = await import("./providers/launch.mjs").catch(
+      (error) => {
+        if (error.code === "ERR_MODULE_NOT_FOUND")
+          throw new Error(
+            "Install Claude support first: cd scripts/providers && npm ci",
+          );
+        throw error;
+      },
+    );
+    configuration = await configureClaude(args, root);
+  } else {
+    if (provider === "openai") args.unshift("-c", 'model_provider="openai"');
+    configuration = { args, env: process.env, close: async () => {} };
+  }
+  const child = spawn(executable, configuration.args, {
+    stdio: "inherit",
+    env: configuration.env,
+  });
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.on(signal, () => child.kill(signal));
+  child.on("error", (error) => {
+    console.error(`Unable to start Ukis Codex: ${error.message}`);
+    process.exitCode = 1;
+  });
+  child.on("close", async (code, signal) => {
+    await configuration.close();
+    process.exitCode = code ?? (signal === "SIGINT" ? 130 : 143);
+  });
+} catch (error) {
+  console.error(error.message);
   process.exitCode = 1;
-});
-child.on("exit", (code, signal) => {
-  process.exitCode = code ?? (signal === "SIGINT" ? 130 : 143);
-});
+}
