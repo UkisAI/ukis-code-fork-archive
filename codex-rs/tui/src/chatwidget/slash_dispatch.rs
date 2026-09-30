@@ -188,6 +188,10 @@ impl ChatWidget {
         }
 
         match cmd {
+            SlashCommand::Loop => self.app_event_tx.send(AppEvent::LoopCommand {
+                thread_id: self.thread_id,
+                args: String::new(),
+            }),
             SlashCommand::Feedback => {
                 if !self.config.feedback_enabled {
                     let params = crate::bottom_pane::feedback_disabled_params();
@@ -763,6 +767,10 @@ impl ChatWidget {
         } = prepared;
         let trimmed = args.trim();
         match cmd {
+            SlashCommand::Loop => self.app_event_tx.send(AppEvent::LoopCommand {
+                thread_id: self.thread_id,
+                args: args.clone(),
+            }),
             SlashCommand::Export if trimmed.is_empty() => self.show_transcript_export_popup(),
             SlashCommand::Export => {
                 self.set_queue_autosend_suppressed(/*suppressed*/ true);
@@ -1225,7 +1233,8 @@ impl ChatWidget {
             return QueueDrain::Stop;
         }
         match cmd {
-            SlashCommand::Ide
+            SlashCommand::Loop
+            | SlashCommand::Ide
             | SlashCommand::Status
             | SlashCommand::Daemon
             | SlashCommand::Pwd

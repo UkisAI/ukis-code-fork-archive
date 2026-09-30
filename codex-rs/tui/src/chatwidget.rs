@@ -287,6 +287,7 @@ mod input_flow;
 mod input_restore;
 mod input_submission;
 mod interrupts;
+pub(crate) mod loops;
 mod questions;
 mod startup_submission;
 use self::interrupts::InterruptManager;
@@ -681,6 +682,7 @@ pub(crate) struct ChatWidget {
     // order.
     suppress_initial_user_message_submit: bool,
     input_queue: InputQueueState,
+    loop_scheduler: crate::loop_scheduler::LoopScheduler,
     safety_buffering_prompt: Option<UserMessage>,
     safety_buffering_source: UserMessageSource,
     /// Main chat-surface bindings resolved from `tui.keymap.chat`.

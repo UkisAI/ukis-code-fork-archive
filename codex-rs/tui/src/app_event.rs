@@ -279,6 +279,16 @@ pub(crate) struct AgentsOverviewThreadRefresh {
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, IntoStaticStr)]
 pub(crate) enum AppEvent {
+    LoopCommand {
+        thread_id: Option<ThreadId>,
+        args: String,
+    },
+    LoopToolCall {
+        thread_id: String,
+        turn_id: String,
+        arguments: serde_json::Value,
+        reply: tokio::sync::oneshot::Sender<Result<String, String>>,
+    },
     OpenDaemonMenu,
     ConfirmDaemonUpdate(crate::update_action::DaemonUpdateSource),
     RunDaemonUpdate(crate::update_action::DaemonUpdateSource),

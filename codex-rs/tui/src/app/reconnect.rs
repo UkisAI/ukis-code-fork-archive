@@ -286,6 +286,10 @@ impl App {
         self.last_subagent_backfill_attempt = None;
         self.rate_limit_refresh_state.invalidate_recovery();
         session.inherit_task_tool_capabilities(app_server);
+        session.loop_mcp = app_server.loop_mcp.take();
+        if let Some(server) = &session.loop_mcp {
+            server.reconnect(self.app_event_tx.clone());
+        }
         *app_server = session;
         #[cfg(any(target_os = "windows", test))]
         let interrupted_windows_setup = self.windows_sandbox.pending_setup.take().is_some();

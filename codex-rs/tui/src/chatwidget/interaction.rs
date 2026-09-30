@@ -91,6 +91,20 @@ impl ChatWidget {
             return KeyEventAction::None;
         }
 
+        if key_hint::plain(KeyCode::Esc).is_press(key_event)
+            && self.bottom_pane.no_modal_or_popup_active()
+            && self.bottom_pane.composer_text().is_empty()
+            && !self.should_handle_vim_insert_escape(key_event)
+        {
+            let stopped = self.loop_scheduler.cancel_adaptive();
+            if stopped > 0 {
+                self.add_info_message(format!("Stopped {stopped} adaptive loop(s)."), None);
+                if !self.is_user_turn_pending_or_running() {
+                    return KeyEventAction::None;
+                }
+            }
+        }
+
         if self.shortcut_overlay_visible() && key_hint::plain(KeyCode::Esc).is_press(key_event) {
             self.bottom_pane.handle_key_event(key_event);
             return KeyEventAction::None;
@@ -642,7 +656,8 @@ impl ChatWidget {
                 .is_some_and(GoalStatusState::is_active)
     }
 
-    pub(crate) fn pause_active_goal_for_interrupt(&self) {
+    pub(crate) fn pause_active_goal_for_interrupt(&mut self) {
+        self.stop_active_loop();
         if !self.is_active_goal_turn_running() {
             return;
         }

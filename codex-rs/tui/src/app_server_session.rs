@@ -331,6 +331,7 @@ pub(crate) struct AppServerSession {
     managed_new_thread_defaults: Option<NewThreadModelDefaults>,
     external_agent_config_import_id: Mutex<Option<String>>,
     dynamic_tool_mcp: Option<Arc<DynamicToolMcpServer>>,
+    pub(crate) loop_mcp: Option<Arc<crate::loop_mcp::LoopMcpServer>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -435,6 +436,7 @@ impl AppServerSession {
             managed_new_thread_defaults: None,
             external_agent_config_import_id: Mutex::default(),
             dynamic_tool_mcp: None,
+            loop_mcp: None,
         }
     }
 
@@ -783,6 +785,9 @@ impl AppServerSession {
             params.history_mode = None;
         }
         self.thread_tool_transport().configure(&mut params);
+        if let Some(server) = &self.loop_mcp {
+            server.configure(&mut params.config);
+        }
         let request_handle = self.request_handle();
         let (response, history_support, task_tools_available) =
             request_thread_start_with_history_fallback(&request_handle, request_id, params)
@@ -985,6 +990,9 @@ impl AppServerSession {
         }
         self.thread_tool_transport()
             .configure_mcp(&mut params.config);
+        if let Some(server) = &self.loop_mcp {
+            server.configure(&mut params.config);
+        }
         let response: ThreadForkResponse = match self
             .client
             .request_typed(ClientRequest::ThreadFork {

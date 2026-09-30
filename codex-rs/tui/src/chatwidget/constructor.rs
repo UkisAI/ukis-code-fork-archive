@@ -233,6 +233,7 @@ impl ChatWidget {
             forked_from: None,
             interrupted_turn_notice_mode: InterruptedTurnNoticeMode::Default,
             input_queue: InputQueueState::default(),
+            loop_scheduler: crate::loop_scheduler::LoopScheduler::default(),
             safety_buffering_prompt: None,
             safety_buffering_source: UserMessageSource::Prompt,
             chat_keymap,

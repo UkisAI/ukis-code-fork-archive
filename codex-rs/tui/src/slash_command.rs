@@ -41,6 +41,7 @@ pub enum SlashCommand {
     Plan,
     Voice,
     Goal,
+    Loop,
     Agents,
     Side,
     Btw,
@@ -134,6 +135,7 @@ impl SlashCommand {
             }
             SlashCommand::Plan => "switch to Plan mode",
             SlashCommand::Voice => "start or stop voice; use /voice settings to choose a voice",
+            SlashCommand::Loop => "repeat a prompt on a fixed or adaptive schedule",
             SlashCommand::Goal => "set or view the goal for a long-running task",
             SlashCommand::Agents => "open the agent command center",
             SlashCommand::MultiAgents => "switch between this session's subagents",
@@ -173,6 +175,7 @@ impl SlashCommand {
                 | SlashCommand::Fork
                 | SlashCommand::Plan
                 | SlashCommand::Goal
+                | SlashCommand::Loop
                 | SlashCommand::Voice
                 | SlashCommand::Ide
                 | SlashCommand::Keymap
@@ -281,6 +284,7 @@ impl SlashCommand {
             | SlashCommand::Stop
             | SlashCommand::App
             | SlashCommand::Goal
+            | SlashCommand::Loop
             | SlashCommand::Voice
             | SlashCommand::Mcp
             | SlashCommand::Apps

@@ -344,6 +344,15 @@ impl App {
         if let Some(updated_model) = config.model.clone() {
             model = updated_model;
         }
+        if !crate::uses_remote_workspace_or_environment(
+            &app_server_target,
+            environment_manager.as_ref(),
+        ) {
+            match crate::loop_mcp::LoopMcpServer::start(&config, app_event_tx.clone()).await {
+                Ok(server) => app_server.loop_mcp = Some(Arc::new(server)),
+                Err(error) => tracing::warn!(%error, "Adaptive loops are unavailable"),
+            }
+        }
         let dynamic_tool_status_updates = tokio::sync::broadcast::channel(/*capacity*/ 64).0;
         if matches!(&app_server_target, AppServerTarget::LocalDaemon { .. })
             && !crate::uses_remote_workspace_or_environment(
@@ -1035,6 +1044,8 @@ See the Codex keymap documentation for supported actions and examples."
             );
         }
 
+        let mut loop_tick = tokio::time::interval(Duration::from_secs(1));
+        loop_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
         let mut listen_for_app_server_events = true;
         let mut reconnect = None;
         let mut waiting_for_initial_session_configured = wait_for_initial_session_configured;
@@ -1143,6 +1154,13 @@ See the Codex keymap documentation for supported actions and examples."
                     .rate_limit_refresh_interval()
                     .and_then(|interval| app.rate_limit_refresh_state.poll_deadline(interval));
                 let control = select! {
+                    _ = loop_tick.tick(), if app.chat_widget.has_loop_tasks()
+                        && !has_pending_app_events && !app.reconnect.offline
+                        && app.pending_thread_switch_resets == 0
+                        && app.overlay.is_none() => {
+                        app.chat_widget.poll_loops(Instant::now());
+                        AppRunControl::Continue
+                    }
                     Some(event) = app_event_rx.recv() => {
                         let is_initial_session_header = matches!(
                             &event,

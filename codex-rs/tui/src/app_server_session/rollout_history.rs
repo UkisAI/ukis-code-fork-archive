@@ -177,6 +177,9 @@ impl AppServerSession {
         }
         self.thread_tool_transport()
             .configure_mcp(&mut params.config);
+        if let Some(server) = &self.loop_mcp {
+            server.configure(&mut params.config);
+        }
         let mut rollout_maintenance_guard = None;
         params.exclude_turns = if self.history_support == ThreadHistorySupport::Paginated {
             let known_legacy_history = self
