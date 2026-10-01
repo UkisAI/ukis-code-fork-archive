@@ -2120,6 +2120,7 @@ dependencies = [
  "codex-prompts",
  "codex-protocol",
  "codex-queue-extension",
+ "codex-research-extension",
  "codex-rmcp-client",
  "codex-rollout",
  "codex-sandboxing",
@@ -4333,6 +4334,21 @@ dependencies = [
  "pretty_assertions",
  "serde",
  "serde_json",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "codex-research-extension"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "codex-core",
+ "codex-extension-api",
+ "codex-protocol",
+ "core_test_support",
+ "pretty_assertions",
+ "regex-lite",
  "tokio",
  "tracing",
 ]

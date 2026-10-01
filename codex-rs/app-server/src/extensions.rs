@@ -31,6 +31,9 @@ use crate::outgoing_message::ThreadScopedOutgoingMessageSender;
 use crate::thread_state::ThreadListenerCommand;
 use crate::thread_state::ThreadStateManager;
 
+/// Enables the Ukis research extension (claim gate) when set to `1`.
+const UKIS_RESEARCH_ENV_VAR: &str = "UKIS_RESEARCH";
+
 pub(crate) struct ThreadExtensionDependencies {
     pub(crate) event_sink: Arc<dyn ExtensionEventSink>,
     pub(crate) auth_manager: Arc<AuthManager>,
@@ -93,6 +96,10 @@ pub(crate) fn thread_extensions(
         git_attribution_base_url,
         http_client_factory,
     );
+    // Ukis research mode is opt-in per process so ordinary sessions are unaffected.
+    if std::env::var(UKIS_RESEARCH_ENV_VAR).is_ok_and(|value| value == "1") {
+        codex_research_extension::install(&mut builder, thread_manager.clone());
+    }
     codex_guardian_v2::install(&mut builder, auth_manager.clone(), thread_manager);
     codex_memories_extension::install(&mut builder, codex_otel::global());
     codex_mcp_extension::install(&mut builder);

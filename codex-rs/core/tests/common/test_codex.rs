@@ -5,6 +5,7 @@ use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
 use std::sync::Arc;
+use std::sync::Weak;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering;
@@ -31,6 +32,7 @@ use codex_exec_server::CreateDirectoryOptions;
 use codex_exec_server::ExecutorFileSystem;
 use codex_exec_server::RemoveOptions;
 use codex_extension_api::ExtensionRegistry;
+use codex_extension_api::ExtensionRegistryBuilder;
 use codex_extension_api::LoadInstructionsFuture;
 use codex_extension_api::UserInstructionsProvider;
 use codex_extension_api::empty_extension_registry;
@@ -379,9 +381,14 @@ impl TestAuth {
     }
 }
 
+/// Installs an extension that needs a handle to the thread manager under construction.
+type ExtensionInstaller =
+    dyn FnOnce(&mut ExtensionRegistryBuilder<Config>, Weak<ThreadManager>) + Send;
+
 pub struct TestCodexBuilder {
     config_mutators: Vec<Box<ConfigMutator>>,
     thread_manager_configurer: Option<Box<dyn FnOnce(ThreadManager) -> ThreadManager + Send>>,
+    extension_installers: Vec<Box<ExtensionInstaller>>,
     auth: TestAuth,
     analytics_events_client: Option<AnalyticsEventsClient>,
     pre_build_hooks: Vec<Box<PreBuildHook>>,
@@ -540,6 +547,18 @@ impl TestCodexBuilder {
 
     pub fn with_extensions(mut self, extensions: Arc<ExtensionRegistry<Config>>) -> Self {
         self.extensions = extensions;
+        self
+    }
+
+    /// Adds an extension installed with a weak handle to the test thread manager, for
+    /// extensions that steer live threads (for example through `inject_if_running`).
+    pub fn with_extension_installer(
+        mut self,
+        installer: impl FnOnce(&mut ExtensionRegistryBuilder<Config>, Weak<ThreadManager>)
+        + Send
+        + 'static,
+    ) -> Self {
+        self.extension_installers.push(Box::new(installer));
         self
     }
 
@@ -805,6 +824,9 @@ impl TestCodexBuilder {
         let thread_manager = Arc::new_cyclic(|manager| {
             let mut extensions = self.extensions.to_builder();
             codex_core::install_agent_message_board(&mut extensions, manager.clone());
+            for installer in self.extension_installers.drain(..) {
+                installer(&mut extensions, manager.clone());
+            }
             if config.features.enabled(Feature::GuardianV2) {
                 codex_guardian_v2::install(&mut extensions, auth_manager.clone(), manager.clone());
             } else {
@@ -1457,6 +1479,7 @@ fn function_call_output<'a>(bodies: &'a [Value], call_id: &str) -> &'a Value {
 pub fn test_codex() -> TestCodexBuilder {
     TestCodexBuilder {
         thread_manager_configurer: None,
+        extension_installers: Vec::new(),
         config_mutators: vec![Box::new(|config| {
             config
                 .features

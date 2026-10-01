@@ -73,6 +73,7 @@ members = [
     "ext/memories",
     "ext/mcp",
     "ext/queue",
+    "ext/research",
     "ext/skills",
     "ext/web-search",
     "external-agent-migration",
@@ -249,6 +250,7 @@ codex-mermaid = { path = "mermaid" }
 codex-message-history = { path = "message-history" }
 codex-memories-extension = { path = "ext/memories" }
 codex-web-search-extension = { path = "ext/web-search" }
+codex-research-extension = { path = "ext/research" }
 codex-memories-read = { path = "memories/read" }
 codex-memories-write = { path = "memories/write" }
 codex-mcp = { path = "codex-mcp" }
