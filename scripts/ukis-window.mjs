@@ -14,24 +14,6 @@ function terminalProfilePath(env) {
   );
 }
 
-export function shouldOpenUkisWindow(
-  args,
-  {
-    platform = process.platform,
-    env = process.env,
-    interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
-    installed = existsSync(terminalProfilePath(env)),
-  } = {},
-) {
-  return (
-    platform === "win32" &&
-    interactive &&
-    installed &&
-    args.length === 0 &&
-    env.UKIS_TERMINAL_PROFILE !== profileId
-  );
-}
-
 export async function openUkisWindow(args) {
   if (process.platform !== "win32" || args.length) {
     console.error("Use ukis window on Windows, without additional arguments.");

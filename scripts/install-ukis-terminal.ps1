@@ -84,4 +84,4 @@ foreach ($relativePath in $terminalSettings) {
     }
 }
 Write-Host 'Installed IBM Plex Mono and the Ukis Code Windows Terminal profile.'
-Write-Host 'Run ukis from any project folder to open it with this font.'
+Write-Host 'Run ukis window to open the font profile, or ukis to stay in your current terminal.'

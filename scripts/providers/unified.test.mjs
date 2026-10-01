@@ -1,4 +1,3 @@
-import { shouldOpenUkisWindow } from "../ukis-window.mjs";
 import { readFile } from "node:fs/promises";
 import { discoverOpenAIModels } from "./openai-catalog.mjs";
 import test from "node:test";
@@ -199,38 +198,5 @@ test("unavailable or malformed native discovery falls back to the build's comple
     });
     assert.deepEqual(actual, expected);
     assert.equal(warnings.length, 1);
-  }
-});
-
-test("plain interactive ukis opens the font profile once while CLI and piped commands stay in place", () => {
-  const environment = {
-    platform: "win32",
-    interactive: true,
-    installed: true,
-    env: {},
-  };
-  assert.equal(shouldOpenUkisWindow([], environment), true);
-  for (const args of [
-    ["exec", "hello"],
-    ["app-server"],
-    ["--help"],
-    ["--version"],
-    ["-m", "sonnet"],
-    ["resume"],
-  ]) {
-    assert.equal(shouldOpenUkisWindow(args, environment), false);
-  }
-  for (const overrides of [
-    { interactive: false },
-    { installed: false },
-    { platform: "linux" },
-    {
-      env: { UKIS_TERMINAL_PROFILE: "{4fc3ef90-34ce-5ce0-adf3-7d124d958fb8}" },
-    },
-  ]) {
-    assert.equal(
-      shouldOpenUkisWindow([], { ...environment, ...overrides }),
-      false,
-    );
   }
 });

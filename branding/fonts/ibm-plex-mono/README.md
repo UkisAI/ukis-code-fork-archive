@@ -7,8 +7,8 @@ These four unmodified TrueType files come from IBM's [Plex Mono 2.5.0 release](h
 Source archive: `ibm-plex-mono.zip`
 SHA-256: `6d23f01257663d8cc49a0d64c22ced630b79e0e2a0ac08a0da86e9a38bbc481c`
 
-Run `powershell -File scripts/install-ukis-terminal.ps1` to install the fonts for the current Windows user and add the **Ukis Code** terminal profile. Then run `ukis` from a project folder.
+Run `powershell -File scripts/install-ukis-terminal.ps1` to install the fonts for the current Windows user and add the **Ukis Code** terminal profile. Then run `ukis window` from a project folder to open that profile explicitly.
 
-The font belongs to the terminal profile. Plain `ukis` from an interactive Windows shell opens the Ukis profile automatically; an existing Ukis profile runs the CLI directly. Commands with arguments or redirected input continue in their current terminal. On macOS or Linux, install these font files and select **IBM Plex Mono** in your terminal's preferences.
+The font belongs to the terminal profile. Plain `ukis` stays in the terminal where you start it. Select **IBM Plex Mono** in that terminal's preferences to use the font in place; this also works on macOS and Linux.
 
 To remove the profile, delete `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\Ukis\ukis.json`. The installed font can be uninstalled through Windows Settings → Personalization → Fonts.

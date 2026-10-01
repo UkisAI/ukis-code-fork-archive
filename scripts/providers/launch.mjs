@@ -34,26 +34,28 @@ export async function configureModels(
   }
   let bridge;
   try {
-    const instructions = await readFile(
-      path.join(root, "codex-rs", "models-manager", "prompt.md"),
-      "utf8",
-    );
-    const rows = await discoverClaudeModels(executable, directory).catch(
-      (error) => {
+    // Both providers discover their current models independently. Do not make
+    // startup pay for the two subprocess/network round trips in sequence.
+    const discovery = await Promise.allSettled([
+      readFile(path.join(root, "codex-rs", "models-manager", "prompt.md"), "utf8"),
+      discoverClaudeModels(executable, directory).catch((error) => {
         if (claudeOnly) throw error;
         console.error(
           "Claude model discovery is unavailable. Install Claude Code and run claude auth login to add it to /model.",
         );
         return [];
-      },
-    );
-    let openai = { models: [] };
-    if (!claudeOnly) {
-      openai = await discoverOpenAIModels(
-        codexExecutable,
-        path.join(root, "codex-rs", "models-manager", "models.json"),
-      );
-    }
+      }),
+      claudeOnly
+        ? Promise.resolve({ models: [] })
+        : discoverOpenAIModels(
+            codexExecutable,
+            path.join(root, "codex-rs", "models-manager", "models.json"),
+          ),
+    ]);
+    // Let every subprocess finish before cleaning its working directory on error.
+    const failed = discovery.find((result) => result.status === "rejected");
+    if (failed) throw failed.reason;
+    const [instructions, rows, openai] = discovery.map((result) => result.value);
     const models = [
       ...openai.models.filter((model) => !isClaudeModel(model.slug)),
       ...claudeCatalog(rows, instructions),

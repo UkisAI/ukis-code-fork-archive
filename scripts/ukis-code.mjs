@@ -6,15 +6,10 @@ import { fileURLToPath } from "node:url";
 
 import { providerOptions } from "./provider-options.mjs";
 import { findUkisBinary } from "./ukis-binary.mjs";
-import { openUkisWindow, shouldOpenUkisWindow } from "./ukis-window.mjs";
+import { openUkisWindow } from "./ukis-window.mjs";
 
 if (process.argv[2] === "window") {
   process.exit(await openUkisWindow(process.argv.slice(3)));
-}
-
-if (shouldOpenUkisWindow(process.argv.slice(2))) {
-  const code = await openUkisWindow([]);
-  if (code === 0) process.exit(0);
 }
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
