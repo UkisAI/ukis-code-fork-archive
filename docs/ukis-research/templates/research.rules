@@ -1,0 +1,306 @@
+# research.rules - execpolicy TEMPLATE for ukis-research experiment repos
+#
+# STATUS: template. This file is NOT active for ukis-code itself. Developers of
+# ukis-code must keep the ability to rebase, amend and force-push their own
+# branches. Nothing under docs/ is loaded by the execpolicy engine; only
+# `<config folder>/rules/*.rules` is (see codex-rs/core/src/exec_policy.rs,
+# RULES_DIR_NAME = "rules", and codex-rs/config/src/state.rs config_folder()).
+#
+# INSTALL (done later by ext/research, not by hand): copy this file to
+#   <experiment repo>/.codex/rules/research.rules
+# The project `.codex/` layer is only honoured when that project is trusted.
+#
+# WHY: in an experiment repo the git history IS the evidence. A node (branch)
+# freezes the moment a run answers it; a run is a snapshot of an exact commit.
+# Rewriting or deleting history after the fact silently invalidates every
+# result that points at it. Rule source: docs/ukis-research/study/A-openresearch-loop.md
+# section 5.6 (OpenResearch orx-git: "Once a run answers an experiment, its
+# branch and history are immutable. Never merge or rebase it.") and PLAN.md P0.
+#
+# FORMAT: codex-execpolicy prefix rules (codex-rs/execpolicy/README.md).
+# `match` / `not_match` examples are validated when the file loads, so they act
+# as unit tests. Note: not_match examples must match NO rule in this file.
+# Verify with:
+#   codex execpolicy check --rules research.rules git rebase main
+#
+# KNOWN LIMITS (prefix matching only, no wildcards):
+# - Flags after free-form arguments are invisible, e.g.
+#   `git push origin my-branch --force` or `git commit -m msg --amend`.
+#   The common leading-flag shapes are covered below, and every `git push`
+#   at least needs approval (decision "prompt").
+# - Global git options shift the prefix: `git -C dir rebase`, `git -c k=v rebase`.
+# - Force via refspec (`git push origin +main`, `git push origin :tag`) and
+#   `--force-with-lease=<ref>:<sha>` are not expressible.
+# - Mixed reset to a commit (`git reset HEAD~1`) cannot be told apart from
+#   unstaging (`git reset file`), so it is not covered.
+# - Commands inside complex shell scripts (pipes, redirects, subshells) may be
+#   evaluated as one opaque `bash -lc ...` argv and not split into git calls.
+# These rules are a guard rail, not proof. The deterministic backstop is the
+# ext/research frozen-node check (branch HEAD == frozen sha, tree hash, reflog),
+# see PLAN.md "Known limits".
+
+# ---------------------------------------------------------------------------
+# 1. Amending commits rewrites the commit a run already points at.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", "commit", "--amend"],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Make a new commit instead of amending; if the node is frozen, create a child node.",
+    match = [
+        "git commit --amend",
+        "git commit --amend --no-edit",
+        "git commit --amend -m fix",
+    ],
+    not_match = [
+        "git commit -m fix",
+        "git commit --fixup HEAD",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "commit",
+        ["-a", "--all", "--no-edit", "-q", "--quiet", "-v", "--verbose", "-n", "--no-verify", "-s", "--signoff", "-S", "--gpg-sign", "--reset-author"],
+        "--amend",
+    ],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Make a new commit instead of amending; if the node is frozen, create a child node.",
+    match = [
+        "git commit -a --amend",
+        "git commit --no-edit --amend",
+        "git commit --no-verify --amend",
+    ],
+    not_match = [
+        "git commit -a -m fix",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 2. Force pushes and remote deletes overwrite or erase shared history.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = [
+        "git",
+        "push",
+        ["--force", "-f", "--force-with-lease", "--force-if-includes", "--mirror", "--delete", "-d", "--prune"],
+    ],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Force pushes and remote deletes overwrite runs other people may cite; push new commits or a new branch instead.",
+    match = [
+        "git push --force",
+        "git push -f origin main",
+        "git push --force-with-lease origin orx/lr-2e-5",
+        "git push --delete origin run-0001",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "push",
+        ["origin", "upstream", "-u", "--set-upstream", "--tags", "--follow-tags", "-q", "--quiet", "-v", "--verbose", "--atomic", "--no-verify"],
+        ["--force", "-f", "--force-with-lease", "--force-if-includes", "--mirror", "--delete", "-d", "--prune"],
+    ],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Force pushes and remote deletes overwrite runs other people may cite; push new commits or a new branch instead.",
+    match = [
+        "git push origin --force main",
+        "git push -u -f origin node",
+        "git push --tags --force",
+        "git push origin --delete run-0001",
+    ],
+)
+
+# Every other push needs a human: experiment repos stay local until someone
+# explicitly decides to share them (PLAN.md P3 needs an explicit go).
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushing experiment history leaves this machine; it needs explicit human approval. Force variants are forbidden outright.",
+    match = [
+        "git push",
+        "git push origin orx/lr-2e-5",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 3. Rebasing rewrites every commit it touches, including frozen nodes.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", "rebase"],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Never rebase a node branch; to bring in other work, create a child node and put a merge commit on the child.",
+    match = [
+        "git rebase main",
+        "git rebase -i HEAD~3",
+        "git rebase --onto main a b",
+    ],
+    not_match = [
+        "git merge main",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "pull", ["--rebase", "-r", "--rebase=true", "--rebase=merges", "--rebase=interactive", "--force", "-f"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Pull without rebasing, or create a child node and merge there.",
+    match = [
+        "git pull --rebase",
+        "git pull -r origin main",
+    ],
+    not_match = [
+        "git pull",
+        "git pull --ff-only",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 4. Ref-moving resets throw away or rewrite committed work.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", "reset", ["--hard", "--soft", "--keep", "--merge"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Do not move a node branch backwards; revert with a new commit or create a child node from the commit you want.",
+    match = [
+        "git reset --hard",
+        "git reset --hard HEAD~1",
+        "git reset --soft HEAD~1",
+    ],
+    not_match = [
+        "git reset",
+        "git reset -- results.json",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", ["-q", "--quiet"], ["--hard", "--soft", "--keep", "--merge"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Do not move a node branch backwards; revert with a new commit or create a child node from the commit you want.",
+    match = [
+        "git reset -q --hard origin/main",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 5. History filters rewrite the whole repository.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", ["filter-branch", "filter-repo", "replace"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. History filters and replace refs change the commits every run points at.",
+    match = [
+        "git filter-branch --tree-filter 'rm -f x' HEAD",
+        "git filter-repo --path secrets.txt --invert-paths",
+        "git replace HEAD~1 abc123",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git-filter-repo"],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. History filters change the commits every run points at.",
+    match = [
+        "git-filter-repo --path secrets.txt --invert-paths",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 6. Run tags. The prefix format cannot match tag NAMES (no globs), so this
+#    forbids deleting or force-moving ANY tag in an experiment repo. Creating
+#    tags stays allowed.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", "tag", ["-d", "--delete", "-f", "--force"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Run tags mark the exact commit a result came from; never delete or move them, tag the new commit with a new name.",
+    match = [
+        "git tag -d run-0001",
+        "git tag --delete run-0001",
+        "git tag -f run-0001 HEAD",
+    ],
+    not_match = [
+        "git tag run-0002",
+        "git tag -l",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "tag", ["-a", "--annotate", "-s", "--sign"], ["-f", "--force"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Run tags mark the exact commit a result came from; never move them.",
+    match = [
+        "git tag -a -f run-0001",
+    ],
+    not_match = [
+        "git tag -a run-0002 -m done",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# 7. Branch deletion / force-moves erase or repoint experiment nodes, and
+#    reflog expiry makes any rewrite unrecoverable.
+# ---------------------------------------------------------------------------
+prefix_rule(
+    pattern = ["git", "branch", ["-d", "-D", "--delete", "-f", "--force", "-M", "-C"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. A node branch is an experiment record; archive it in the research tree instead of deleting or force-moving it.",
+    match = [
+        "git branch -D orx/lr-2e-5",
+        "git branch -f orx/lr-2e-5 HEAD~2",
+        "git branch -M main",
+    ],
+    not_match = [
+        "git branch orx/new-node",
+        "git branch -a",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", ["checkout", "switch"], ["-B", "-C", "--force-create"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Force-creating a branch resets an existing node; pick a new branch name.",
+    match = [
+        "git checkout -B orx/lr-2e-5",
+        "git switch -C orx/lr-2e-5",
+    ],
+    not_match = [
+        "git checkout -b orx/new-node",
+        "git switch orx/lr-2e-5",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "update-ref", ["-d", "--no-deref", "--stdin"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Raw ref edits bypass every other guard.",
+    match = [
+        "git update-ref -d refs/heads/orx/lr-2e-5",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "reflog", ["expire", "delete"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. The reflog is the audit trail that proves nothing was rewritten.",
+    match = [
+        "git reflog expire --expire=now --all",
+        "git reflog delete HEAD@{1}",
+    ],
+    not_match = [
+        "git reflog",
+        "git reflog show",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "gc", ["--prune=now", "--prune=all"]],
+    decision = "forbidden",
+    justification = "Experiment history is evidence; never rewrite it. Pruning now deletes unreachable commits that recovery depends on.",
+    match = [
+        "git gc --prune=now",
+    ],
+    not_match = [
+        "git gc",
+    ],
+)
