@@ -98,9 +98,9 @@ upstream sync, the fork's own AGENTS.md says to avoid it.
    ```
 
 8. **A mature technique graduates into a skill.** When a technique has VALID reproductions and a
-   stable methodology.md, it is exported as a skill (SKILL.md) that any agent can run. First
-   seed techniques: `opsa` (Miroslav 1.0 = Tihomir 2.0 + OPSA step 60) and `swift` (shortening
-   reasoning / overthinking, Tihomir 2.0 = Swift).
+   stable methodology.md, it is exported as a skill (SKILL.md) that any agent can run. The
+   framework is technique-agnostic: we ship the mold, the team fills techniques (e.g. swift,
+   opsa) and methodologies themselves. Nothing is pre-authored.
 
 9. **Team knowledge loop, not a personal tool.** 5 people now, more later, many parallel lines:
    kernel optimization, swifting, OPD, quants (GSQRSO, Quant_configs), post-training. So:

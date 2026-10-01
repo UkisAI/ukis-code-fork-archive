@@ -47,9 +47,9 @@ Each phase ends with a verify gate; no phase starts before the previous one pass
   emit reasoning items `rs_ukis_*`, strip them in `openai-forward.mjs` on provider switch.
 - `.codex/rules/research.rules` (execpolicy): forbid `git commit --amend`, `push --force`,
   `rebase` inside experiment worktrees.
-- `ukis-methods` local repo skeleton: `eval/methodology.md` (the 31 rules from `study/E` +
-  OpenResearch tree rules from `study/A`), seed techniques `swift` and `opsa` from existing
-  Tihomir/Miroslav history.
+- `ukis-methods` local repo: the mold only (layout, technique template, results contract,
+  `new-technique.sh`). No technique content and no authored methodology; the team fills those.
+  Done 2026-10-01. Execpolicy rules shipped as a template (`templates/research.rules`).
 - **Verify:** one Claude and one local-model session each leave a trace with reasoning on disk
   (local server reasoning format is UNVERIFIED today, this step tests it).
 
