@@ -10,9 +10,11 @@ export async function discoverClaudeModels(executable, cwd) {
     timeout: 15000,
   });
   const auth = JSON.parse(stdout);
+  // Claude Code 2.1.x reports a claude.ai subscription login as "oauth_token";
+  // older releases said "claude.ai". Both are subscription OAuth, not an API key.
   if (
     !auth.loggedIn ||
-    auth.authMethod !== "claude.ai" ||
+    !["claude.ai", "oauth_token"].includes(auth.authMethod) ||
     auth.apiProvider !== "firstParty"
   ) {
     throw new Error(

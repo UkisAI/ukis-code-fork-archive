@@ -32,4 +32,10 @@ Reasoning by provider:
 - `--thinking adaptive` is now always sent for Claude. Behavior on models without adaptive thinking (Haiku) is UNVERIFIED; use `UKIS_CLAUDE_THINKING_DISPLAY=default` if a model misbehaves.
 - `ukis --provider openai` bypasses the bridge, so resuming a session that holds `rs_ukis_*` items there is not stripped (likely rejected by OpenAI). Resume through plain `ukis`.
 - Not recorded: thinking signatures, `redacted_thinking` blocks, empty (omitted) thinking.
-- Verified by node tests only (mapping, event order, stripping, launcher env). No real session has been run; that Codex parses the emitted item is checked by reading `protocol/src/models.rs` and `codex-api/src/sse/responses.rs`, not by a build.
+- Adaptive thinking is the model's choice: a trivial turn (e.g. one `echo`) produces no thinking block and so no reasoning item. That is not a recording failure.
+
+## Verified live (2026-10-01, release build, Claude Code 2.1.286)
+
+- `UKIS_RECORD=1 ukis claude exec "<task>" < /dev/null`: rollout holds the user prompt, the `exec_command` call with exact args, its full output with exit code, the assistant answer, and two `rs_ukis_*` reasoning items with summarized thinking; the trace bundle (~240 KB per short session) holds the same reasoning in its request payloads.
+- `codex exec` reads stdin when it is not a TTY and waits for EOF. Close it (`< /dev/null`) in scripts, or the run hangs before a thread starts.
+- Still not run live: Claude -> OpenAI switch stripping, local-model reasoning.
